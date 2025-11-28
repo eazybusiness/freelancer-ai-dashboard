@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtualenvs
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+*.swp
+
+# Secrets
+.env
+
+# Logs
+logs/
+*.log
+
+# Data files (API responses, analysis, bids)
+data/seen_projects.json
+data/*shortlist.json
+data/analysis_*.json
+data/bids_*.json

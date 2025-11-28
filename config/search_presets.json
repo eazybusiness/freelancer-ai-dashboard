@@ -1,0 +1,58 @@
+{
+  "presets": {
+    "fullstack_daily": {
+      "profile": "fullstack",
+      "query": "full stack django javascript typescript api",
+      "countries": [
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR",
+        "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
+        "SI", "ES", "SE", "IL", "CH", "NO", "GB", "US", "CA", "AU", "NZ"
+      ],
+      "languages": ["en", "es", "de"],
+      "skills": ["django", "javascript", "node", "typescript", "html", "css", "postgres"],
+      "min_budget": 150,
+      "max_budget": 3000,
+      "min_bids": 0,
+      "max_bids": 100,
+      "posted_within_hours": 24,
+      "limit": 50,
+      "pages": 2
+    },
+    "python_daily": {
+      "profile": "python",
+      "query": "python flask django automation scraping pandas playwright api",
+      "countries": [
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR",
+        "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
+        "SI", "ES", "SE", "IL", "CH", "NO", "GB", "US", "CA", "AU", "NZ"
+      ],
+      "languages": ["en", "es", "de"],
+      "skills": ["python", "flask", "django", "scraping", "pandas", "playwright"],
+      "min_budget": 150,
+      "max_budget": 3000,
+      "min_bids": 0,
+      "max_bids": 100,
+      "posted_within_hours": 24,
+      "limit": 50,
+      "pages": 2
+    },
+    "mobile_daily": {
+      "profile": "mobile",
+      "query": "flutter dart android ios firebase mobile app",
+      "countries": [
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR",
+        "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
+        "SI", "ES", "SE", "IL", "CH", "NO", "GB", "US", "CA", "AU", "NZ"
+      ],
+      "languages": ["en", "es", "de"],
+      "skills": ["flutter", "dart", "android", "ios", "firebase"],
+      "min_budget": 150,
+      "max_budget": 3000,
+      "min_bids": 0,
+      "max_bids": 100,
+      "posted_within_hours": 48,
+      "limit": 50,
+      "pages": 2
+    }
+  }
+}
