@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2 style="font-size:1rem; font-weight:600; margin:0 0 0.5rem 0;">Profile & proposal settings</h2>
+  <p style="margin:0 0 1rem 0; font-size:0.85rem; color:#9ca3af;">
+    Configure how the AI presents you in proposals. Each profile is used for different project types
+    (web, mobile, experimental / coding). Changes apply to both the CLI and the dashboard.
+  </p>
+
+  <form id="profiles-form" style="display:flex; flex-direction:column; gap:1rem; max-width:900px;">
+    {% for key, profile in profiles.items() %}
+      <section data-profile-key="{{ key }}" style="padding:0.75rem 0; border-top:1px solid #1f2937;">
+        <h3 style="margin:0 0 0.5rem 0; font-size:0.9rem; font-weight:600; text-transform:capitalize;">{{ key }} profile</h3>
+        <div style="display:flex; flex-direction:column; gap:0.4rem; font-size:0.8rem;">
+          <label>
+            <span style="display:block; color:#9ca3af; margin-bottom:0.1rem;">Label</span>
+            <input type="text" name="label-{{ key }}" value="{{ profile.label }}" style="width:100%; padding:0.25rem 0.5rem; border-radius:0.25rem; border:1px solid #374151; background:#020617; color:#e5e7eb;">
+          </label>
+          <label>
+            <span style="display:block; color:#9ca3af; margin-bottom:0.1rem;">Portfolio / profile link</span>
+            <input type="text" name="link-{{ key }}" value="{{ profile.link }}" style="width:100%; padding:0.25rem 0.5rem; border-radius:0.25rem; border:1px solid #374151; background:#020617; color:#e5e7eb;">
+          </label>
+          <label>
+            <span style="display:block; color:#9ca3af; margin-bottom:0.1rem;">General intro (used for all bids)</span>
+            <textarea name="general-{{ key }}" rows="4" style="width:100%; padding:0.25rem 0.5rem; border-radius:0.25rem; border:1px solid #374151; background:#020617; color:#e5e7eb;">{{ profile.general }}</textarea>
+          </label>
+          <label>
+            <span style="display:block; color:#9ca3af; margin-bottom:0.1rem;">Section focus (used for this profile only)</span>
+            <textarea name="section-{{ key }}" rows="4" style="width:100%; padding:0.25rem 0.5rem; border-radius:0.25rem; border:1px solid #374151; background:#020617; color:#e5e7eb;">{{ profile.section }}</textarea>
+          </label>
+        </div>
+      </section>
+    {% endfor %}
+
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-top:0.75rem;">
+      <button type="button" id="save-profiles" style="padding:0.4rem 0.9rem; border-radius:0.25rem; border:none; background:#38bdf8; color:#020617; font-weight:600; cursor:pointer;">Save changes</button>
+      <span id="save-status" style="font-size:0.8rem; color:#9ca3af;"></span>
+    </div>
+  </form>
+
+  <p style="margin-top:1.5rem; font-size:0.8rem; color:#6b7280;">
+    Prompt templates are stored in <code>prompts/analysis_prompt.md</code> and <code>prompts/bid_prompt.md</code>.
+    You can edit them directly in your editor (e.g. vim) for deeper customization.
+  </p>
+
+  <script>
+    (function() {
+      const form = document.getElementById('profiles-form');
+      const saveBtn = document.getElementById('save-profiles');
+      const statusEl = document.getElementById('save-status');
+      if (!form || !saveBtn || !statusEl) return;
+
+      function collectProfiles() {
+        const sections = form.querySelectorAll('[data-profile-key]');
+        const profiles = {};
+        sections.forEach(function(section) {
+          const key = section.getAttribute('data-profile-key');
+          if (!key) return;
+          const label = section.querySelector('[name="label-' + key + '"]');
+          const link = section.querySelector('[name="link-' + key + '"]');
+          const general = section.querySelector('[name="general-' + key + '"]');
+          const focus = section.querySelector('[name="section-' + key + '"]');
+          profiles[key] = {
+            label: label ? label.value : '',
+            link: link ? link.value : '',
+            general: general ? general.value : '',
+            section: focus ? focus.value : '',
+          };
+        });
+        return profiles;
+      }
+
+      saveBtn.addEventListener('click', function() {
+        const payload = { profiles: collectProfiles() };
+        statusEl.textContent = '';
+        saveBtn.disabled = true;
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = 'Saving...';
+
+        fetch('/api/profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function(resp) { return resp.json(); })
+          .then(function(data) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+            if (!data || !data.ok) {
+              var msg = (data && data.detail) || (data && data.error) || 'Failed to save profiles.';
+              statusEl.textContent = msg;
+              statusEl.style.color = '#f97316';
+              return;
+            }
+            statusEl.textContent = 'Saved.';
+            statusEl.style.color = '#22c55e';
+          })
+          .catch(function() {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+            statusEl.textContent = 'Failed to save profiles.';
+            statusEl.style.color = '#f97316';
+          });
+      });
+    })();
+  </script>
+{% endblock %}

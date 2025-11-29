@@ -6,9 +6,10 @@ from typing import Any, Dict
 from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
-PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
+PROMPTS_DIR = BASE_DIR / "prompts"
 DEFAULT_ANALYSIS_PROMPT_PATH = PROMPTS_DIR / "analysis_prompt.md"
 DEFAULT_BID_PROMPT_PATH = PROMPTS_DIR / "bid_prompt.md"
 
@@ -159,7 +160,7 @@ def generate_bid_for_project(
     prompt_template = _load_bid_prompt()
 
     title = project.get("title") or ""
-    description = project.get("description") or ""
+    description = project.get("description") or project.get("preview_description") or ""
     seo_url = project.get("seo_url") or ""
     project_url = ""
     if isinstance(seo_url, str) and seo_url:

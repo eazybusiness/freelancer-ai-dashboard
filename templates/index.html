@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <form method="get" class="filters">
+    <div>
+      <label for="preset">Preset</label>
+      <select name="preset" id="preset">
+        <option value="">All</option>
+        {% for p in all_presets %}
+          <option value="{{ p }}" {% if p == active_preset %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="min_score">Min score</label>
+      <input type="number" min="0" max="100" name="min_score" id="min_score" value="{{ min_score or '' }}">
+    </div>
+    <div>
+      <label for="min_budget">Min avg budget</label>
+      <input type="number" min="0" step="50" name="min_budget" id="min_budget" value="{{ min_budget or '' }}">
+    </div>
+    <div>
+      <label for="max_bids">Max bids</label>
+      <input type="number" min="0" name="max_bids" id="max_bids" value="{{ max_bids or '' }}">
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button type="submit">Apply filters</button>
+    </div>
+  </form>
+
+  {% if not items %}
+    <p style="font-size:0.85rem; color:#9ca3af;">No projects match the current filters.</p>
+  {% else %}
+    <div class="card-grid">
+      {% for item in items %}
+        {% set analysis = item.analysis or {} %}
+        {% set project = item.project or {} %}
+        {% set score = analysis.rough_score or 0 %}
+        {% set auto = analysis.automation_potential or 0 %}
+        {% set status = item.status %}
+        <article class="card">
+          <div class="card-header">
+            <div class="card-title">
+              {% if item.project_url %}
+                <a href="{{ item.project_url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+              {% else %}
+                {{ item.title }}
+              {% endif %}
+            </div>
+            <div class="status {% if status == 'bid_drafted' %}status-bid{% elif status == 'analyzed' %}status-analyzed{% else %}status-seen{% endif %}">
+              {% if status == 'bid_drafted' %}Bid drafted{% elif status == 'analyzed' %}Analyzed{% else %}Seen{% endif %}
+            </div>
+          </div>
+
+          <div class="chip-row">
+            {% if item.preset %}
+              <span class="chip">{{ item.preset }}</span>
+            {% endif %}
+            {% if item.is_dach %}
+              <span class="chip dach">DACH{% if item.country_code %} · {{ item.country_code }}{% endif %}</span>
+            {% elif item.country_code %}
+              <span class="chip">{{ item.country_code }}</span>
+            {% endif %}
+            <span class="chip {% if score >= 80 %}good{% elif score >= 60 %}warn{% else %}bad{% endif %}">Score {{ score }}</span>
+            <span class="chip {% if auto >= 60 %}good{% elif auto >= 30 %}warn{% else %}bad{% endif %}">Auto {{ auto }}</span>
+            {% if item.avg_budget %}
+              <span class="chip">Avg budget {{ '%.0f' % item.avg_budget }}</span>
+            {% endif %}
+            {% if item.bid_count is not none %}
+              <span class="chip">{{ item.bid_count }} bids</span>
+            {% endif %}
+          </div>
+
+          {% if analysis.summary %}
+            <p class="summary">{{ analysis.summary }}</p>
+          {% endif %}
+
+          <div class="meta">
+            {% if analysis.category %}
+              <span>Category: {{ analysis.category }}</span>
+            {% endif %}
+            {% if analysis.risks %}
+              <span>Risks: {{ analysis.risks }}</span>
+            {% endif %}
+          </div>
+
+          <div style="margin-top:0.4rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem; font-size:0.8rem; color:#9ca3af;">
+            <button type="button" data-detail-id="{{ item.id }}" style="padding:0.25rem 0.6rem; border-radius:0.25rem; border:1px solid #374151; background:#020617; color:#e5e7eb; cursor:pointer;">View details</button>
+            {% if item.has_bid %}
+              <button type="button" data-view-bid-id="{{ item.id }}" style="padding:0.25rem 0.6rem; border-radius:0.25rem; border:1px solid #22c55e; background:#022c22; color:#bbf7d0; cursor:pointer;">View bid</button>
+            {% else %}
+              <button type="button" data-generate-bid-id="{{ item.id }}" style="padding:0.25rem 0.6rem; border-radius:0.25rem; border:1px solid #22c55e; background:#022c22; color:#bbf7d0; cursor:pointer;">Generate bid</button>
+            {% endif %}
+          </div>
+
+          <div id="detail-content-{{ item.id }}" data-title="{{ item.title }}" style="display:none;">
+            {% set description = project.description or project.preview_description %}
+            {% if description %}
+              <h4>Description</h4>
+              <p class="preformatted">{{ description }}</p>
+            {% endif %}
+            {% if analysis.manual_work_notes %}
+              <h4>Manual work notes</h4>
+              <p class="preformatted">{{ analysis.manual_work_notes }}</p>
+            {% endif %}
+            {% if analysis.reasons %}
+              <h4>Reasons</h4>
+              <p class="preformatted">{{ analysis.reasons }}</p>
+            {% endif %}
+            {% if analysis.risks %}
+              <h4>Risks</h4>
+              <p class="preformatted">{{ analysis.risks }}</p>
+            {% endif %}
+          </div>
+
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

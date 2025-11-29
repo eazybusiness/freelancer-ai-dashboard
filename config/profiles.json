@@ -1,0 +1,22 @@
+{
+  "profiles": {
+    "web": {
+      "label": "Full Stack Web & Innovation",
+      "link": "https://me.hiplus.de/categories/full-stack-web/index.html",
+      "general": "Hi, I'm Nils Peters\nFull Stack Developer & Serial Entrepreneur\n\nTransforming ambitious business visions into powerful, scalable technology solutions. With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, I deliver innovative digital experiences that drive measurable business growth.",
+      "section": "Full-Stack Excellence: Building robust web applications from concept to deployment.\nTechnical Stack: Node.js, Express, React, Next.js, TypeScript, Python, Flask.\nDatabase Expertise: PostgreSQL, MongoDB, MySQL with optimized query design.\nAPI Development: RESTful APIs, GraphQL, real-time WebSocket implementations.\nCloud & DevOps: AWS, Docker, CI/CD pipelines for scalable deployments."
+    },
+    "mobile": {
+      "label": "Mobile Apps",
+      "link": "https://me.hiplus.de/categories/mobile/index.html",
+      "general": "Hi, I'm Nils Peters\nFull Stack Developer & Serial Entrepreneur\n\nTransforming ambitious business visions into powerful, scalable technology solutions. With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, I deliver innovative digital experiences that drive measurable business growth.",
+      "section": "Mobile Development: Native iOS/Android and cross-platform apps with Flutter/React Native.\nMobile-First Design: Responsive, intuitive UI/UX following platform guidelines.\nApp Store: Deployment support and basic ASO strategy.\nOffline & Sync: Robust offline functionality with seamless data sync."
+    },
+    "coding": {
+      "label": "Innovation & Coding",
+      "link": "https://me.hiplus.de/categories/labs/index.html",
+      "general": "Hi, I'm Nils Peters\nFull Stack Developer & Serial Entrepreneur\n\nTransforming ambitious business visions into powerful, scalable technology solutions. With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, I deliver innovative digital experiences that drive measurable business growth.",
+      "section": "Innovation Prototyping: Rapid MVPs and proof-of-concept projects.\nEmerging Tech: AI/ML integration, automation, experimental features.\nPerformance: Load testing, security reviews, and optimization.\nR&D: Exploring new frameworks and architectural patterns."
+    }
+  }
+}

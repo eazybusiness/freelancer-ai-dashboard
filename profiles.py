@@ -1,0 +1,138 @@
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+BASE_DIR = Path(__file__).resolve().parent
+PROFILES_PATH = BASE_DIR / "config" / "profiles.json"
+
+
+DEFAULT_PROFILES: Dict[str, Dict[str, str]] = {
+    "web": {
+        "label": "Full Stack Web & Innovation",
+        "link": "https://me.hiplus.de/categories/full-stack-web/index.html",
+        "general": (
+            "Hi, I'm Nils Peters\n"
+            "Full Stack Developer & Serial Entrepreneur\n\n"
+            "Transforming ambitious business visions into powerful, scalable technology solutions. "
+            "With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, "
+            "I deliver innovative digital experiences that drive measurable business growth."
+        ),
+        "section": (
+            "Full-Stack Excellence: Building robust web applications from concept to deployment.\n"
+            "Technical Stack: Node.js, Express, React, Next.js, TypeScript, Python, Flask.\n"
+            "Database Expertise: PostgreSQL, MongoDB, MySQL with optimized query design.\n"
+            "API Development: RESTful APIs, GraphQL, real-time WebSocket implementations.\n"
+            "Cloud & DevOps: AWS, Docker, CI/CD pipelines for scalable deployments."
+        ),
+    },
+    "mobile": {
+        "label": "Mobile Apps",
+        "link": "https://me.hiplus.de/categories/mobile/index.html",
+        "general": (
+            "Hi, I'm Nils Peters\n"
+            "Full Stack Developer & Serial Entrepreneur\n\n"
+            "Transforming ambitious business visions into powerful, scalable technology solutions. "
+            "With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, "
+            "I deliver innovative digital experiences that drive measurable business growth."
+        ),
+        "section": (
+            "Mobile Development: Native iOS/Android and cross-platform apps with Flutter/React Native.\n"
+            "Mobile-First Design: Responsive, intuitive UI/UX following platform guidelines.\n"
+            "App Store: Deployment support and basic ASO strategy.\n"
+            "Offline & Sync: Robust offline functionality with seamless data sync."
+        ),
+    },
+    "coding": {
+        "label": "Innovation & Coding",
+        "link": "https://me.hiplus.de/categories/labs/index.html",
+        "general": (
+            "Hi, I'm Nils Peters\n"
+            "Full Stack Developer & Serial Entrepreneur\n\n"
+            "Transforming ambitious business visions into powerful, scalable technology solutions. "
+            "With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, "
+            "I deliver innovative digital experiences that drive measurable business growth."
+        ),
+        "section": (
+            "Innovation Prototyping: Rapid MVPs and proof-of-concept projects.\n"
+            "Emerging Tech: AI/ML integration, automation, experimental features.\n"
+            "Performance: Load testing, security reviews, and optimization.\n"
+            "R&D: Exploring new frameworks and architectural patterns."
+        ),
+    },
+}
+
+
+def _merge_with_defaults(stored: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+    merged: Dict[str, Dict[str, str]] = {k: dict(v) for k, v in DEFAULT_PROFILES.items()}
+    for key, value in stored.items():
+        if not isinstance(value, dict):
+            continue
+        base = merged.get(key, {}).copy()
+        for field in ("label", "link", "general", "section"):
+            if field in value and isinstance(value[field], str):
+                base[field] = value[field]
+        merged[key] = base
+    return merged
+
+
+def load_profiles() -> Dict[str, Dict[str, str]]:
+    if not PROFILES_PATH.exists():
+        return {k: dict(v) for k, v in DEFAULT_PROFILES.items()}
+    try:
+        with PROFILES_PATH.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return {k: dict(v) for k, v in DEFAULT_PROFILES.items()}
+
+    raw_profiles = data.get("profiles")
+    if not isinstance(raw_profiles, dict):
+        return {k: dict(v) for k, v in DEFAULT_PROFILES.items()}
+
+    return _merge_with_defaults(raw_profiles)
+
+
+def save_profiles(profiles: Dict[str, Dict[str, str]]) -> None:
+    PROFILES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"profiles": profiles}
+    with PROFILES_PATH.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def get_profile(profile_key: str) -> Dict[str, str]:
+    profiles = load_profiles()
+    profile = profiles.get(profile_key) or {}
+
+    # Fallbacks if fields are missing
+    fallback = DEFAULT_PROFILES.get("web", {})
+    label = profile.get("label") or fallback.get("label") or "Full Stack Developer"
+    link = profile.get("link") or fallback.get("link") or ""
+    general = profile.get("general") or fallback.get("general") or ""
+    section = profile.get("section") or ""
+
+    return {
+        "label": str(label),
+        "link": str(link),
+        "general": str(general),
+        "section": str(section),
+    }
+
+
+def select_profile_key(category: str, project: Dict[str, Any]) -> str:
+    """Pick a profile key (web, mobile, coding) based on analysis category and text."""
+
+    category = (category or "").lower()
+    text = (project.get("description") or project.get("preview_description") or "")
+    text_lower = text.lower()
+
+    if category == "mobile" or any(
+        kw in text_lower for kw in ("flutter", "android", "ios", "react native")
+    ):
+        return "mobile"
+
+    if any(kw in text_lower for kw in ("odoo", "erp")):
+        return "coding"
+
+    if category in {"fullstack", "webdesign", "data", "devops"}:
+        return "web"
+
+    return "coding"

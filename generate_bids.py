@@ -4,9 +4,11 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List
 
+from dotenv import dotenv_values
 from email_notifier import EmailSender
 from openai_client import generate_bid_for_project
 from store import load_seen, save_seen
+from profiles import select_profile_key as _select_profile_key, get_profile as _build_profile
 
 
 GENERAL_PROFILE = (
@@ -18,70 +20,66 @@ GENERAL_PROFILE = (
     "experiences that drive measurable business growth."
 )
 
-PROFILE_SECTIONS = {
-    "web": (
-        "Full-Stack Excellence: Building robust web applications from concept to deployment.\n"
-        "Technical Stack: Node.js, Express, React, Next.js, TypeScript, Python, Flask.\n"
-        "Database Expertise: PostgreSQL, MongoDB, MySQL with optimized query design.\n"
-        "API Development: RESTful APIs, GraphQL, real-time WebSocket implementations.\n"
-        "Cloud & DevOps: AWS, Docker, CI/CD pipelines for scalable deployments."
-    ),
-    "mobile": (
-        "Mobile Development: Native iOS/Android and cross-platform apps with Flutter/React Native.\n"
-        "Mobile-First Design: Responsive, intuitive UI/UX following platform guidelines.\n"
-        "App Store: Deployment support and basic ASO strategy.\n"
-        "Offline & Sync: Robust offline functionality with seamless data sync."
-    ),
-    "coding": (
-        "Innovation Prototyping: Rapid MVPs and proof-of-concept projects.\n"
-        "Emerging Tech: AI/ML integration, automation, experimental features.\n"
-        "Performance: Load testing, security reviews, and optimization.\n"
-        "R&D: Exploring new frameworks and architectural patterns."
-    ),
-}
 
-PROFILE_LINKS = {
-    "web": "https://me.hiplus.de/categories/full-stack-web/index.html",
-    "mobile": "https://me.hiplus.de/categories/mobile/index.html",
-    "coding": "https://me.hiplus.de/categories/labs/index.html",
-}
+def _read_notification_email_from_env_file() -> str | None:
+    """Manual fallback parser for NOTIFICATION_EMAIL from .env.
 
-PROFILE_LABELS = {
-    "web": "Full Stack Web & Innovation",
-    "mobile": "Mobile Apps",
-    "coding": "Innovation & Coding",
-}
+    This does not rely on python-dotenv's environment handling and instead
+    reads the file directly, looking for a line starting with
+    NOTIFICATION_EMAIL and splitting on '=' or ':'.
+    """
 
+    env_path = Path(__file__).resolve().parent / ".env"
+    if not env_path.exists():
+        return None
+    try:
+        with env_path.open("r", encoding="utf-8") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                # Handle UTF-8 BOM and similar artifacts on the first line.
+                if line.startswith("\ufeff"):
+                    line = line.lstrip("\ufeff")
+                if not line.startswith("NOTIFICATION_EMAIL"):
+                    continue
+                # Support KEY=VALUE or KEY: VALUE styles.
+                if "=" in line:
+                    _, value = line.split("=", 1)
+                elif ":" in line:
+                    _, value = line.split(":", 1)
+                else:
+                    continue
+                value = value.strip().strip('"').strip("'")
+                return value or None
+    except OSError:
+        return None
 
-def _select_profile_key(category: str, project: Dict[str, Any]) -> str:
-    """Pick a profile key (web, mobile, coding) based on analysis category and text."""
-
-    category = (category or "").lower()
-    text = (project.get("description") or "")
-    text_lower = text.lower()
-
-    if category == "mobile" or any(
-        kw in text_lower for kw in ("flutter", "android", "ios", "react native")
-    ):
-        return "mobile"
-
-    if any(kw in text_lower for kw in ("odoo", "erp")):
-        return "coding"  # placeholder until an ERP-specific profile is added
-
-    # Default to web for most dev projects; use coding for clearly experimental ones.
-    if category in {"fullstack", "webdesign", "data", "devops"}:
-        return "web"
-
-    return "coding"
+    return None
 
 
-def _build_profile(profile_key: str) -> Dict[str, str]:
-    return {
-        "label": PROFILE_LABELS.get(profile_key, "Full Stack Developer"),
-        "general": GENERAL_PROFILE,
-        "section": PROFILE_SECTIONS.get(profile_key, ""),
-        "link": PROFILE_LINKS.get(profile_key, "https://me.hiplus.de/categories/full-stack-web/index.html"),
-    }
+def _project_bid_count(project: Dict[str, Any]) -> int | None:
+    bid_stats = project.get("bid_stats")
+    if isinstance(bid_stats, dict):
+        bid_count = bid_stats.get("bid_count")
+        if isinstance(bid_count, int):
+            return bid_count
+    return None
+
+
+def _project_avg_budget(project: Dict[str, Any]) -> float | None:
+    budget = project.get("budget")
+    if not isinstance(budget, dict):
+        return None
+    minimum = budget.get("minimum")
+    maximum = budget.get("maximum")
+    values: List[float] = []
+    for v in (minimum, maximum):
+        if isinstance(v, (int, float)):
+            values.append(float(v))
+    if not values:
+        return None
+    return sum(values) / len(values)
 
 
 def _determine_milestone_size_and_count(project: Dict[str, Any]) -> Dict[str, Any]:
@@ -264,12 +262,27 @@ def main() -> None:
         print("No eligible projects found for bid generation.")
         return
 
-    # Sort by rough_score, then automation_potential, descending.
+    # Sort by a composite key so that the "top N" projects are truly
+    # attractive for you:
+    # - highest rough_score first
+    # - then higher automation_potential
+    # - then higher average budget
+    # - then fewer current bids (lower bid_count)
     def sort_key(item: Dict[str, Any]) -> tuple:
         analysis = item.get("analysis") or {}
+        project = item.get("project") or {}
+
         score = analysis.get("rough_score") or 0
         auto = analysis.get("automation_potential") or 0
-        return (int(score), int(auto))
+
+        avg_budget = _project_avg_budget(project) or 0.0
+        bid_count = _project_bid_count(project)
+        # We want fewer bids to rank higher. Since we sort with
+        # reverse=True, use a negative value here so that a smaller
+        # original bid_count becomes a larger sort key.
+        bid_component = -bid_count if isinstance(bid_count, int) else 0
+
+        return (int(score), int(auto), float(avg_budget), bid_component)
 
     eligible.sort(key=sort_key, reverse=True)
 
@@ -349,6 +362,21 @@ def main() -> None:
 
     if args.notify_email:
         notification_email = os.getenv("NOTIFICATION_EMAIL")
+        if not notification_email:
+            # Fallback: read directly from .env using dotenv_values, in case
+            # load_dotenv did not populate the process environment.
+            env_path = Path(__file__).resolve().parent / ".env"
+            try:
+                env_values = dotenv_values(env_path)
+            except Exception:
+                env_values = {}
+            notification_email = env_values.get("NOTIFICATION_EMAIL")
+
+        if not notification_email:
+            # Final fallback: manual .env parsing in case there are encoding
+            # issues or subtle formatting differences.
+            notification_email = _read_notification_email_from_env_file()
+
         if not notification_email:
             print("NOTIFICATION_EMAIL is not set; skipping email notification.")
         else:
