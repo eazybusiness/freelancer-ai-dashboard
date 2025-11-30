@@ -1,6 +1,6 @@
 You are generating a SHORT but high-quality proposal for a Freelancer.com project.
 
-The freelancer (Nils) wants to:
+The freelancer wants to:
 - Save time.
 - Stand out from generic, boring bids.
 - Focus on outcomes, not specific tools.
@@ -47,7 +47,7 @@ Required milestone count: {MILESTONE_COUNT}
   - German: "Hallo,"
 - **Length**: Keep the proposal under roughly 900–1100 characters. Prioritize clarity and impact.
 - **Personal positioning**:
-  - Clearly state that you are Nils Peters, a full stack developer and serial entrepreneur, in the first or second sentence.
+  - In the first or second sentence, briefly describe who you are as a freelancer (role, strengths, focus) using the PROFILE_GENERAL text. Do not invent or assume a specific personal name.
   - Blend the freelancer profile information (PROFILE_GENERAL and PROFILE_SECTION) into 1–2 natural sentences. Do not dump it as a list; integrate it into the flow.
   - Mention the portfolio link once, for example: "You can see more of my work here: {PROFILE_LINK}".
 - **Style**:

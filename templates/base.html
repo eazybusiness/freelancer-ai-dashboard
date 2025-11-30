@@ -23,6 +23,7 @@
     .filters button:hover { background: #0ea5e9; }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
     .card { background: #020617; border-radius: 0.5rem; padding: 0.9rem 1rem; border: 1px solid #1f2937; display: flex; flex-direction: column; gap: 0.4rem; }
+    .card-highlight { border-color: #facc15; box-shadow: 0 0 0 1px #facc15; }
     .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
     .card-title { font-size: 0.95rem; font-weight: 600; }
     .chip-row { display: flex; flex-wrap: wrap; gap: 0.4rem; font-size: 0.75rem; }
@@ -194,6 +195,7 @@
           });
       }
 
+      // Project-level actions (details, bids, status updates, refresh)
       document.addEventListener('click', function(e) {
         const detailBtn = e.target.closest('[data-detail-id]');
         if (detailBtn) {
@@ -249,8 +251,132 @@
           const id = bidBtn.getAttribute('data-generate-bid-id');
           if (!id) return;
           triggerBidGeneration(id, bidBtn);
+          return;
+        }
+
+        const statusBtn = e.target.closest('[data-status-update]');
+        if (statusBtn) {
+          const id = statusBtn.getAttribute('data-status-id');
+          const status = statusBtn.getAttribute('data-status-value');
+          const reason = statusBtn.getAttribute('data-status-reason');
+          if (!id || !status) return;
+
+          const originalText = statusBtn.textContent;
+          statusBtn.disabled = true;
+          statusBtn.textContent = 'Updating...';
+
+          fetch('/api/project/' + encodeURIComponent(id) + '/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: status, reason: reason || null }),
+          })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+              statusBtn.disabled = false;
+              statusBtn.textContent = originalText;
+              if (!data || !data.ok) {
+                var msg = (data && data.detail) || (data && data.error) || 'Failed to update status.';
+                alert(msg);
+                return;
+              }
+              const card = statusBtn.closest('.card');
+              if (card) {
+                card.remove();
+              }
+            })
+            .catch(function() {
+              statusBtn.disabled = false;
+              statusBtn.textContent = originalText;
+              alert('Failed to update status.');
+            });
         }
       });
+
+      // Refresh controls (only on projects page)
+      const refreshBtn = document.getElementById('refresh-btn');
+      const autoRefreshCheckbox = document.getElementById('auto-refresh');
+      const activePreset = (window.activePreset || '').trim ? (window.activePreset || '').trim() : (window.activePreset || '');
+
+      let refreshInFlight = false;
+      let autoTimer = null;
+
+      function performRefresh(isAuto) {
+        if (!activePreset) {
+          if (!isAuto) {
+            alert('Select a preset first, then refresh.');
+          }
+          return;
+        }
+        if (refreshInFlight) return;
+        refreshInFlight = true;
+
+        if (refreshBtn && !isAuto) {
+          refreshBtn.disabled = true;
+          refreshBtn.textContent = 'Refreshing...';
+        }
+
+        fetch('/api/refresh?preset=' + encodeURIComponent(activePreset), {
+          method: 'POST',
+        })
+          .then(function(resp) { return resp.json(); })
+          .then(function(data) {
+            refreshInFlight = false;
+            if (refreshBtn && !isAuto) {
+              refreshBtn.disabled = false;
+              refreshBtn.textContent = 'Fetch & analyze new projects';
+            }
+            if (!data || !data.ok) {
+              var msg = (data && data.detail) || (data && data.error) || 'Refresh failed.';
+              alert(msg);
+              return;
+            }
+            // Reload to pick up new JSON files.
+            window.location.reload();
+          })
+          .catch(function() {
+            refreshInFlight = false;
+            if (refreshBtn && !isAuto) {
+              refreshBtn.disabled = false;
+              refreshBtn.textContent = 'Fetch & analyze new projects';
+            }
+            alert('Refresh failed.');
+          });
+      }
+
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+          performRefresh(false);
+        });
+      }
+
+      function applyAutoRefreshSetting() {
+        if (!autoRefreshCheckbox) return;
+        if (autoTimer) {
+          clearInterval(autoTimer);
+          autoTimer = null;
+        }
+        const enabled = autoRefreshCheckbox.checked;
+        try {
+          window.localStorage.setItem('dashboard_auto_refresh', enabled ? '1' : '0');
+        } catch (e) {}
+        if (enabled && activePreset) {
+          autoTimer = setInterval(function() {
+            performRefresh(true);
+          }, 5 * 60 * 1000);
+        }
+      }
+
+      if (autoRefreshCheckbox) {
+        // Initialize from localStorage
+        try {
+          const stored = window.localStorage.getItem('dashboard_auto_refresh');
+          if (stored === '1') {
+            autoRefreshCheckbox.checked = true;
+          }
+        } catch (e) {}
+        applyAutoRefreshSetting();
+        autoRefreshCheckbox.addEventListener('change', applyAutoRefreshSetting);
+      }
     })();
   </script>
 </body>

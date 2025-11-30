@@ -29,6 +29,17 @@
     </div>
   </form>
 
+  <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; font-size:0.8rem; color:#9ca3af;">
+    <button type="button" id="refresh-btn" style="padding:0.35rem 0.9rem; border-radius:0.25rem; border:none; background:#22c55e; color:#020617; font-weight:600; cursor:pointer;">Fetch &amp; analyze new projects</button>
+    <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+      <input type="checkbox" id="auto-refresh" style="accent-color:#38bdf8;">
+      <span>Auto-refresh every 5 minutes (while this page is open)</span>
+    </label>
+    {% if total_items is not none %}
+      <span style="margin-left:auto;">Showing {{ visible_items }} of {{ total_items }} matching projects (max {{ max_visible }}).</span>
+    {% endif %}
+  </div>
+
   {% if not items %}
     <p style="font-size:0.85rem; color:#9ca3af;">No projects match the current filters.</p>
   {% else %}
@@ -39,7 +50,7 @@
         {% set score = analysis.rough_score or 0 %}
         {% set auto = analysis.automation_potential or 0 %}
         {% set status = item.status %}
-        <article class="card">
+        <article class="card{% if item.is_dach or (score >= 81 and auto >= 60) %} card-highlight{% endif %}">
           <div class="card-header">
             <div class="card-title">
               {% if item.project_url %}
@@ -85,6 +96,13 @@
             {% endif %}
           </div>
 
+          <div style="margin-top:0.25rem; display:flex; flex-wrap:wrap; gap:0.35rem; font-size:0.7rem; color:#6b7280;">
+            <span>Quick actions:</span>
+            <button type="button" data-status-update data-status-id="{{ item.id }}" data-status-value="bid_posted" style="padding:0.15rem 0.4rem; border-radius:999px; border:1px solid #22c55e; background:#022c22; color:#bbf7d0; cursor:pointer;">Posted</button>
+            <button type="button" data-status-update data-status-id="{{ item.id }}" data-status-value="rejected" data-status-reason="not_suitable" style="padding:0.15rem 0.4rem; border-radius:999px; border:1px solid #374151; background:#020617; color:#e5e7eb; cursor:pointer;">Not suitable</button>
+            <button type="button" data-status-update data-status-id="{{ item.id }}" data-status-value="rejected" data-status-reason="too_crowded" style="padding:0.15rem 0.4rem; border-radius:999px; border:1px solid #f97316; background:#1b1305; color:#fed7aa; cursor:pointer;">Too crowded</button>
+          </div>
+
           <div style="margin-top:0.4rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem; font-size:0.8rem; color:#9ca3af;">
             <button type="button" data-detail-id="{{ item.id }}" style="padding:0.25rem 0.6rem; border-radius:0.25rem; border:1px solid #374151; background:#020617; color:#e5e7eb; cursor:pointer;">View details</button>
             {% if item.has_bid %}
@@ -118,4 +136,7 @@
       {% endfor %}
     </div>
   {% endif %}
+  <script>
+    window.activePreset = "{{ active_preset or '' }}";
+  </script>
 {% endblock %}

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Root of the project
-PROJECT_ROOT="/home/nop/CascadeProjects/freelance_api"
+# Root of the project (directory containing this script)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
 
 # Optional: adjust python executable if you use a venv, e.g.
-# PYTHON="/home/nop/.virtualenvs/freelance_api/bin/python"
-PYTHON="python3"
+# PYTHON="/path/to/your/venv/bin/python"
+PYTHON="${PYTHON:-python3}"
 
 # --- Python / automation preset ---
 $PYTHON search_jobs.py \

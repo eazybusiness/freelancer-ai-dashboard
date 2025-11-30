@@ -1,22 +1,28 @@
 {
   "profiles": {
     "web": {
-      "label": "Full Stack Web & Innovation",
-      "link": "https://me.hiplus.de/categories/full-stack-web/index.html",
-      "general": "Hi, I'm Nils Peters\nFull Stack Developer & Serial Entrepreneur\n\nTransforming ambitious business visions into powerful, scalable technology solutions. With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, I deliver innovative digital experiences that drive measurable business growth.",
-      "section": "Full-Stack Excellence: Building robust web applications from concept to deployment.\nTechnical Stack: Node.js, Express, React, Next.js, TypeScript, Python, Flask.\nDatabase Expertise: PostgreSQL, MongoDB, MySQL with optimized query design.\nAPI Development: RESTful APIs, GraphQL, real-time WebSocket implementations.\nCloud & DevOps: AWS, Docker, CI/CD pipelines for scalable deployments."
+      "label": "Full-Stack Web & Product Engineering",
+      "link": "https://your-portfolio.example/web",
+      "general": "Hi, I'm a senior full-stack engineer and product-minded architect.\n\nI design and build web applications end-to-end: from requirements and UX to backend architecture, DevOps, and production monitoring. I enjoy turning ambiguous business ideas into stable, maintainable software products.",
+      "section": "Full-Stack Excellence: Building robust web applications from concept to deployment.\nTechnical Stack: Python (FastAPI/Flask), Node.js, React, Next.js, TypeScript.\nDatabase Expertise: PostgreSQL, MongoDB, MySQL with optimized query design.\nAPI Development: RESTful APIs, background workers, integrations with third-party APIs.\nCloud & DevOps: Docker, CI/CD pipelines, basic monitoring and logging."
     },
     "mobile": {
-      "label": "Mobile Apps",
-      "link": "https://me.hiplus.de/categories/mobile/index.html",
-      "general": "Hi, I'm Nils Peters\nFull Stack Developer & Serial Entrepreneur\n\nTransforming ambitious business visions into powerful, scalable technology solutions. With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, I deliver innovative digital experiences that drive measurable business growth.",
+      "label": "Mobile Apps & Cross-Platform",
+      "link": "https://your-portfolio.example/mobile",
+      "general": "Hi, I'm a full-stack and mobile engineer focused on shipping reliable apps.\n\nI build cross-platform and native mobile applications, connect them to secure backends, and care about performance, UX, and maintainability.",
       "section": "Mobile Development: Native iOS/Android and cross-platform apps with Flutter/React Native.\nMobile-First Design: Responsive, intuitive UI/UX following platform guidelines.\nApp Store: Deployment support and basic ASO strategy.\nOffline & Sync: Robust offline functionality with seamless data sync."
     },
     "coding": {
-      "label": "Innovation & Coding",
-      "link": "https://me.hiplus.de/categories/labs/index.html",
-      "general": "Hi, I'm Nils Peters\nFull Stack Developer & Serial Entrepreneur\n\nTransforming ambitious business visions into powerful, scalable technology solutions. With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, I deliver innovative digital experiences that drive measurable business growth.",
-      "section": "Innovation Prototyping: Rapid MVPs and proof-of-concept projects.\nEmerging Tech: AI/ML integration, automation, experimental features.\nPerformance: Load testing, security reviews, and optimization.\nR&D: Exploring new frameworks and architectural patterns."
+      "label": "Innovation, Automation & Prototyping",
+      "link": "https://your-portfolio.example/labs",
+      "general": "Hi, I'm an engineer who enjoys exploring new ideas, automating workflows, and building proof-of-concept products.\n\nI work across the stack, from backend services and data pipelines to quick interfaces that help validate concepts with real users.",
+      "section": "Innovation Prototyping: Rapid MVPs and proof-of-concept projects.\nEmerging Tech: AI/ML integration, automation, experimental features.\nPerformance: Load testing, security reviews, and optimization.\nR&D: Exploring new frameworks, APIs, and architectural patterns."
+    },
+    "hybrid": {
+      "label": "Hybrid IT & Business Consulting",
+      "link": "https://your-portfolio.example/hybrid",
+      "general": "Hi, I'm a technology consultant and solutions architect with experience bridging business strategy and engineering teams.\n\nI specialize in translating business goals into clear technical roadmaps, coordinating stakeholders, and making sure that IT projects deliver measurable outcomes instead of just features.",
+      "section": "Hybrid IT & business roles: technology consulting, technical project management, IT strategy and digital transformation.\nFocus: stakeholder alignment, requirements clarification, roadmapping, and managing trade-offs between scope, budget, and timelines.\nTypical roles: Technology Consultant, Technical Project Manager, IT Strategy Advisor for multilingual or globally distributed teams."
     }
   }
 }

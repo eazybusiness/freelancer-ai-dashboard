@@ -1,4 +1,7 @@
 import json
+import subprocess
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -18,8 +21,15 @@ from profiles import load_profiles, save_profiles
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 
+# Dashboard behaviour constants
+MAX_PROJECT_AGE_HOURS = 48  # hide projects older than this
+MAX_VISIBLE_CARDS = 50      # maximum number of cards on the board
+REFRESH_MAX_PROJECTS = 20   # max projects to analyze per refresh call
+
 app = FastAPI(title="Freelance AI Dashboard")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+_refresh_in_progress = False
 
 
 def _project_timestamp(project: Dict[str, Any]) -> Optional[int]:
@@ -30,6 +40,26 @@ def _project_timestamp(project: Dict[str, Any]) -> Optional[int]:
         return int(ts) if ts is not None else None
     except (TypeError, ValueError):
         return None
+
+
+def _load_config_presets() -> List[str]:
+    """Return preset names from config/search_presets.json if available."""
+
+    config_path = BASE_DIR / "config" / "search_presets.json"
+    if not config_path.exists():
+        return []
+    try:
+        with config_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return []
+
+    presets_obj = data.get("presets")
+    if not isinstance(presets_obj, dict):
+        return []
+
+    names = [str(name) for name in presets_obj.keys()]
+    return sorted(names)
 
 
 def _load_shortlist_projects(shortlist_path: Path) -> Dict[int, Dict[str, Any]]:
@@ -214,12 +244,27 @@ async def index(
 ):
     items = _collect_dashboard_items()
 
-    filtered: List[Dict[str, Any]] = []
+    # Filter by status, age, and user-specified filters.
+    now_ts = int(datetime.now(timezone.utc).timestamp())
+    max_age_seconds = MAX_PROJECT_AGE_HOURS * 3600 if MAX_PROJECT_AGE_HOURS else None
+
+    filtered_all: List[Dict[str, Any]] = []
     for item in items:
         analysis = item.get("analysis") or {}
         score = analysis.get("rough_score")
         avg_budget = item.get("avg_budget")
         bid_count = item.get("bid_count")
+        status = item.get("status")
+        ts = item.get("timestamp") or 0
+
+        # Hide projects that were explicitly archived.
+        if status in {"bid_posted", "rejected"}:
+            continue
+
+        # Hide projects older than the max age.
+        if max_age_seconds is not None and isinstance(ts, int) and ts > 0:
+            if now_ts - ts > max_age_seconds:
+                continue
 
         if preset and item.get("preset") != preset:
             continue
@@ -234,23 +279,33 @@ async def index(
         if isinstance(max_bids, int) and isinstance(bid_count, int) and bid_count > max_bids:
             continue
 
-        filtered.append(item)
+        filtered_all.append(item)
 
-    presets = sorted(
-        {i.get("preset") for i in items if i.get("preset")},
-    )
+    # Enforce card limit after all filters.
+    limited_items = filtered_all[:MAX_VISIBLE_CARDS]
+
+    # Presets to offer in the dropdown: prefer config-defined presets,
+    # but fall back to those discovered in analysis items.
+    config_presets = _load_config_presets()
+    if config_presets:
+        presets = config_presets
+    else:
+        presets = sorted({i.get("preset") for i in items if i.get("preset")})
 
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
-            "items": filtered,
+            "items": limited_items,
             "all_presets": presets,
             "active_preset": preset,
             "min_score": min_score,
             "min_budget": min_budget,
             "max_bids": max_bids,
             "active_page": "projects",
+            "total_items": len(filtered_all),
+            "visible_items": len(limited_items),
+            "max_visible": MAX_VISIBLE_CARDS,
         },
     )
 
@@ -314,6 +369,88 @@ async def get_bid(project_id: int) -> Dict[str, Any]:
         "project_id": project_id,
         "bid": bid,
     }
+
+
+@app.post("/api/refresh")
+async def refresh(preset: str = Query(...)) -> Dict[str, Any]:
+    """Run search + analysis for a given preset to fetch new projects.
+
+    Uses the existing CLI tools (search_jobs.py and analyze_jobs.py) but limits
+    the number of analyzed projects per call.
+    """
+
+    global _refresh_in_progress
+    if _refresh_in_progress:
+        raise HTTPException(status_code=409, detail="Refresh already in progress")
+    if not preset:
+        raise HTTPException(status_code=400, detail="Query parameter 'preset' is required")
+
+    _refresh_in_progress = True
+    try:
+        shortlist_path = BASE_DIR / "data" / f"{preset}_shortlist.json"
+
+        # 1) Run search_jobs.py to update the shortlist for this preset.
+        search_cmd = [
+            sys.executable,
+            str(BASE_DIR / "search_jobs.py"),
+            "--preset",
+            preset,
+            "--output-json",
+            str(shortlist_path),
+        ]
+        search_proc = subprocess.run(
+            search_cmd,
+            cwd=str(BASE_DIR),
+            capture_output=True,
+            text=True,
+        )
+        if search_proc.returncode != 0:
+            msg = search_proc.stderr.strip() or search_proc.stdout.strip() or "search_jobs failed"
+            raise HTTPException(status_code=500, detail=msg)
+
+        # 2) Run analyze_jobs.py to apply phase 1 AI on new projects.
+        analyze_cmd = [
+            sys.executable,
+            str(BASE_DIR / "analyze_jobs.py"),
+            "--input-json",
+            str(shortlist_path),
+            "--max-projects",
+            str(REFRESH_MAX_PROJECTS),
+        ]
+        analyze_proc = subprocess.run(
+            analyze_cmd,
+            cwd=str(BASE_DIR),
+            capture_output=True,
+            text=True,
+        )
+        if analyze_proc.returncode != 0:
+            msg = analyze_proc.stderr.strip() or analyze_proc.stdout.strip() or "analyze_jobs failed"
+            raise HTTPException(status_code=500, detail=msg)
+
+        return {"ok": True}
+    finally:
+        _refresh_in_progress = False
+
+
+@app.post("/api/project/{project_id}/status")
+async def update_project_status(project_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    status = payload.get("status")
+    reason = payload.get("reason")
+    if not isinstance(status, str) or not status:
+        raise HTTPException(status_code=400, detail="Field 'status' is required")
+
+    seen_store = load_seen()
+    key = str(project_id)
+    entry = seen_store.get(key) or {}
+
+    entry["status"] = status
+    if reason:
+        entry["rejection_reason"] = str(reason)
+
+    seen_store[key] = entry
+    save_seen(seen_store)
+
+    return {"ok": True}
 
 
 @app.get("/settings", response_class=HTMLResponse)

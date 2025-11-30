@@ -53,6 +53,24 @@
       "posted_within_hours": 48,
       "limit": 50,
       "pages": 2
+    },
+    "hybrid_daily": {
+      "profile": "hybrid",
+      "query": "technology consultant technical project manager it strategy advisor digital transformation stakeholder global teams bilingual multilingual",
+      "countries": [
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR",
+        "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
+        "SI", "ES", "SE", "IL", "CH", "NO", "GB", "US", "CA", "AU", "NZ"
+      ],
+      "languages": ["en", "es", "de"],
+      "skills": ["project management", "consulting", "strategy", "business analysis", "management"],
+      "min_budget": 200,
+      "max_budget": 5000,
+      "min_bids": 0,
+      "max_bids": 80,
+      "posted_within_hours": 48,
+      "limit": 50,
+      "pages": 2
     }
   }
 }

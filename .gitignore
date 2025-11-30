@@ -23,3 +23,6 @@ data/seen_projects.json
 data/*shortlist.json
 data/analysis_*.json
 data/bids_*.json
+
+# Local screenshots (keep UI screenshots private by default)
+Screenshot*.png

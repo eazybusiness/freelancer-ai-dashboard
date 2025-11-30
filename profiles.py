@@ -8,32 +8,29 @@ PROFILES_PATH = BASE_DIR / "config" / "profiles.json"
 
 DEFAULT_PROFILES: Dict[str, Dict[str, str]] = {
     "web": {
-        "label": "Full Stack Web & Innovation",
-        "link": "https://me.hiplus.de/categories/full-stack-web/index.html",
+        "label": "Full-Stack Web & Product Engineering",
+        "link": "https://your-portfolio.example/web",
         "general": (
-            "Hi, I'm Nils Peters\n"
-            "Full Stack Developer & Serial Entrepreneur\n\n"
-            "Transforming ambitious business visions into powerful, scalable technology solutions. "
-            "With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, "
-            "I deliver innovative digital experiences that drive measurable business growth."
+            "Hi, I'm a senior full-stack engineer and product-minded architect.\n\n"
+            "I design and build web applications end-to-end: from requirements and UX "
+            "to backend architecture, DevOps, and production monitoring. I enjoy turning "
+            "ambiguous business ideas into stable, maintainable software products."
         ),
         "section": (
             "Full-Stack Excellence: Building robust web applications from concept to deployment.\n"
-            "Technical Stack: Node.js, Express, React, Next.js, TypeScript, Python, Flask.\n"
+            "Technical Stack: Python (FastAPI/Flask), Node.js, React, Next.js, TypeScript.\n"
             "Database Expertise: PostgreSQL, MongoDB, MySQL with optimized query design.\n"
-            "API Development: RESTful APIs, GraphQL, real-time WebSocket implementations.\n"
-            "Cloud & DevOps: AWS, Docker, CI/CD pipelines for scalable deployments."
+            "API Development: RESTful APIs, background workers, integrations with third-party APIs.\n"
+            "Cloud & DevOps: Docker, CI/CD pipelines, basic monitoring and logging."
         ),
     },
     "mobile": {
-        "label": "Mobile Apps",
-        "link": "https://me.hiplus.de/categories/mobile/index.html",
+        "label": "Mobile Apps & Cross-Platform",
+        "link": "https://your-portfolio.example/mobile",
         "general": (
-            "Hi, I'm Nils Peters\n"
-            "Full Stack Developer & Serial Entrepreneur\n\n"
-            "Transforming ambitious business visions into powerful, scalable technology solutions. "
-            "With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, "
-            "I deliver innovative digital experiences that drive measurable business growth."
+            "Hi, I'm a full-stack and mobile engineer focused on shipping reliable apps.\n\n"
+            "I build cross-platform and native mobile applications, connect them to secure "
+            "backends, and care about performance, UX, and maintainability."
         ),
         "section": (
             "Mobile Development: Native iOS/Android and cross-platform apps with Flutter/React Native.\n"
@@ -43,20 +40,19 @@ DEFAULT_PROFILES: Dict[str, Dict[str, str]] = {
         ),
     },
     "coding": {
-        "label": "Innovation & Coding",
-        "link": "https://me.hiplus.de/categories/labs/index.html",
+        "label": "Innovation, Automation & Prototyping",
+        "link": "https://your-portfolio.example/labs",
         "general": (
-            "Hi, I'm Nils Peters\n"
-            "Full Stack Developer & Serial Entrepreneur\n\n"
-            "Transforming ambitious business visions into powerful, scalable technology solutions. "
-            "With expertise spanning full-stack development, mobile applications, and enterprise ERP systems, "
-            "I deliver innovative digital experiences that drive measurable business growth."
+            "Hi, I'm an engineer who enjoys exploring new ideas, automating workflows, "
+            "and building proof-of-concept products.\n\n"
+            "I work across the stack, from backend services and data pipelines to quick "
+            "interfaces that help validate concepts with real users."
         ),
         "section": (
             "Innovation Prototyping: Rapid MVPs and proof-of-concept projects.\n"
             "Emerging Tech: AI/ML integration, automation, experimental features.\n"
             "Performance: Load testing, security reviews, and optimization.\n"
-            "R&D: Exploring new frameworks and architectural patterns."
+            "R&D: Exploring new frameworks, APIs, and architectural patterns."
         ),
     },
 }
@@ -123,6 +119,26 @@ def select_profile_key(category: str, project: Dict[str, Any]) -> str:
     category = (category or "").lower()
     text = (project.get("description") or project.get("preview_description") or "")
     text_lower = text.lower()
+
+    # Hybrid IT/business consulting, project management, and strategy roles.
+    if category in {"consulting", "strategy", "projectmanagement", "productmanagement"} or any(
+        kw in text_lower
+        for kw in (
+            "technology consultant",
+            "technical project manager",
+            "it project manager",
+            "it strategy",
+            "digital transformation",
+            "business strategy",
+            "stakeholder",
+            "c-level",
+            "executive",
+            "global team",
+            "bilingual",
+            "multilingual",
+        )
+    ):
+        return "hybrid"
 
     if category == "mobile" or any(
         kw in text_lower for kw in ("flutter", "android", "ios", "react native")

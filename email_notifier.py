@@ -10,9 +10,9 @@ class EmailSender:
         """
         Initializes the EmailSender with settings from environment variables.
         """
-        self.SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.ionos.de')
+        self.SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.example.com')
         self.SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
-        self.USERNAME = os.getenv('SMTP_USERNAME', 'info@hiplus.de')
+        self.USERNAME = os.getenv('SMTP_USERNAME', 'your-sender@example.com')
         self.PASSWORD = os.getenv('SMTP_PASSWORD')
         
         if not self.USERNAME:

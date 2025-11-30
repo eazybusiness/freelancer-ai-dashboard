@@ -12,12 +12,11 @@ from profiles import select_profile_key as _select_profile_key, get_profile as _
 
 
 GENERAL_PROFILE = (
-    "Hi, I'm Nils Peters\n"
-    "Full Stack Developer & Serial Entrepreneur\n\n"
-    "Transforming ambitious business visions into powerful, scalable technology "
-    "solutions. With expertise spanning full-stack development, mobile "
-    "applications, and enterprise ERP systems, I deliver innovative digital "
-    "experiences that drive measurable business growth."
+    "Hi, I'm a senior full-stack engineer and product-minded builder.\n\n"
+    "I design and ship web and automation projects end-to-end, from requirements "
+    "clarification and architecture to implementation, testing, and deployment.\n\n"
+    "My focus is on reliability, clear communication, and solutions that create "
+    "measurable business value instead of just adding features."
 )
 
 
