@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Manual Bid Generator{% endblock %}
+
+{% block content %}
+<style>
+  .manual-bid-container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+  .form-group textarea,
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .form-group textarea {
+    min-height: 200px;
+    resize: vertical;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.15);
+  }
+  .form-row {
+    display: flex;
+    gap: 1rem;
+  }
+  .form-row .form-group {
+    flex: 1;
+  }
+  .generate-btn {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 0.85rem 2rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .generate-btn:hover {
+    background: #1d4ed8;
+  }
+  .generate-btn:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+  }
+  .result-section {
+    margin-top: 2rem;
+    display: none;
+  }
+  .result-section.visible {
+    display: block;
+  }
+  .result-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .result-box h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: #475569;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .result-box pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .copy-btn {
+    background: #e2e8f0;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .copy-btn:hover {
+    background: #cbd5e1;
+  }
+  .copy-btn.copied {
+    background: #86efac;
+  }
+  .milestone-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .milestone-item:last-child {
+    border-bottom: none;
+  }
+  .milestone-title {
+    font-weight: 600;
+    color: #1e293b;
+  }
+  .milestone-desc {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
+  .loading {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+  }
+  .loading.visible {
+    display: flex;
+  }
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .error-msg {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    display: none;
+  }
+  .error-msg.visible {
+    display: block;
+  }
+  .demo-note {
+    background: #fefce8;
+    border: 1px solid #fef08a;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #854d0e;
+    margin-top: 1rem;
+  }
+</style>
+
+<div class="manual-bid-container">
+  <h2>Manual Bid Generator</h2>
+  <p style="color: #64748b; margin-bottom: 1.5rem;">
+    Paste a project description from Freelancer.com and generate a tailored proposal using your profiles.
+  </p>
+
+  <form id="bidForm">
+    <div class="form-group">
+      <label for="projectTitle">Project Title</label>
+      <input type="text" id="projectTitle" placeholder="e.g., Build a food delivery platform" />
+    </div>
+
+    <div class="form-group">
+      <label for="projectDescription">Project Description *</label>
+      <textarea id="projectDescription" placeholder="Paste the full project description here..." required></textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="profileSelect">Profile</label>
+        <select id="profileSelect">
+          {% for key, profile in profiles.items() %}
+          <option value="{{ key }}">{{ profile.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="budgetSize">Budget Size</label>
+        <select id="budgetSize">
+          <option value="unknown">Unknown</option>
+          <option value="small">Small (&lt; $200)</option>
+          <option value="medium">Medium ($200–$1000)</option>
+          <option value="large">Large (&gt; $1000)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="projectUrl">Project URL (optional)</label>
+      <input type="text" id="projectUrl" placeholder="https://www.freelancer.com/projects/..." />
+    </div>
+
+    <button type="submit" class="generate-btn" id="generateBtn">Generate Bid</button>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <span>Generating proposal...</span>
+    </div>
+  </form>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="result-section" id="resultSection">
+    <div class="result-box">
+      <h3>
+        Proposal Text
+        <button class="copy-btn" onclick="copyToClipboard('proposalText', this)">Copy</button>
+      </h3>
+      <pre id="proposalText"></pre>
+    </div>
+
+    <div class="result-box">
+      <h3>
+        Milestones
+        <button class="copy-btn" onclick="copyMilestones(this)">Copy</button>
+      </h3>
+      <div id="milestonesList"></div>
+    </div>
+
+    <div class="demo-note" id="demoNote" style="display: none;">
+      <strong>Free demo offered:</strong> <span id="demoReason"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('bidForm');
+  const generateBtn = document.getElementById('generateBtn');
+  const loading = document.getElementById('loading');
+  const errorMsg = document.getElementById('errorMsg');
+  const resultSection = document.getElementById('resultSection');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const description = document.getElementById('projectDescription').value.trim();
+    if (!description) {
+      showError('Please paste a project description.');
+      return;
+    }
+
+    // Show loading state
+    generateBtn.disabled = true;
+    loading.classList.add('visible');
+    errorMsg.classList.remove('visible');
+    resultSection.classList.remove('visible');
+
+    const payload = {
+      title: document.getElementById('projectTitle').value.trim() || 'Untitled Project',
+      description: description,
+      url: document.getElementById('projectUrl').value.trim() || '',
+      profile_key: document.getElementById('profileSelect').value,
+      budget_size: document.getElementById('budgetSize').value
+    };
+
+    try {
+      const response = await fetch('/api/manual-bid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to generate bid');
+      }
+
+      // Display results
+      document.getElementById('proposalText').textContent = data.proposal_text || '';
+
+      const milestonesList = document.getElementById('milestonesList');
+      milestonesList.innerHTML = '';
+      if (data.milestone_plan && data.milestone_plan.milestones) {
+        data.milestone_plan.milestones.forEach((m, i) => {
+          const div = document.createElement('div');
+          div.className = 'milestone-item';
+          div.innerHTML = `
+            <div class="milestone-title">${i + 1}. ${m.title}</div>
+            <div class="milestone-desc">${m.description}</div>
+          `;
+          milestonesList.appendChild(div);
+        });
+      }
+
+      const demoNote = document.getElementById('demoNote');
+      if (data.free_demo_offered) {
+        document.getElementById('demoReason').textContent = data.free_demo_reason || 'Yes';
+        demoNote.style.display = 'block';
+      } else {
+        demoNote.style.display = 'none';
+      }
+
+      resultSection.classList.add('visible');
+
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      generateBtn.disabled = false;
+      loading.classList.remove('visible');
+    }
+  });
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('visible');
+  }
+
+  function copyToClipboard(elementId, btn) {
+    const text = document.getElementById(elementId).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  function copyMilestones(btn) {
+    const items = document.querySelectorAll('#milestonesList .milestone-item');
+    let text = '';
+    items.forEach((item, i) => {
+      const title = item.querySelector('.milestone-title').textContent;
+      const desc = item.querySelector('.milestone-desc').textContent;
+      text += `${title}\n${desc}\n\n`;
+    });
+    navigator.clipboard.writeText(text.trim()).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+{% endblock %}

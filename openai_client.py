@@ -149,11 +149,14 @@ def generate_bid_for_project(
     milestone_size: str,
     milestone_count: int,
     model: str | None = None,
+    project_url: str | None = None,
 ) -> Dict[str, Any]:
     """Generate a proposal and milestone plan for a project using a more capable model.
 
     Returns a dict with keys: proposal_text, milestone_plan, free_demo_offered,
     free_demo_reason.
+
+    If project_url is not provided, it will be derived from project['seo_url'].
     """
 
     client = _get_client()
@@ -161,10 +164,14 @@ def generate_bid_for_project(
 
     title = project.get("title") or ""
     description = project.get("description") or project.get("preview_description") or ""
-    seo_url = project.get("seo_url") or ""
-    project_url = ""
-    if isinstance(seo_url, str) and seo_url:
-        project_url = f"https://www.freelancer.com/projects/{seo_url}"
+
+    # Use provided project_url or derive from seo_url
+    if not project_url:
+        seo_url = project.get("seo_url") or ""
+        if isinstance(seo_url, str) and seo_url:
+            project_url = f"https://www.freelancer.com/projects/{seo_url}"
+        else:
+            project_url = ""
 
     prompt = (
         prompt_template.replace("{PROJECT_TITLE}", str(title))

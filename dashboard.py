@@ -488,3 +488,75 @@ async def update_profiles(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     save_profiles(cleaned)
     return {"ok": True}
+
+
+@app.get("/manual-bid", response_class=HTMLResponse)
+async def manual_bid_page(request: Request):
+    """Page for manually pasting a project description and generating a bid."""
+    profiles = load_profiles()
+    return templates.TemplateResponse(
+        "manual_bid.html",
+        {
+            "request": request,
+            "profiles": profiles,
+            "active_page": "manual_bid",
+        },
+    )
+
+
+@app.post("/api/manual-bid")
+async def manual_bid_generate(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate a bid from a manually pasted project description."""
+    description = payload.get("description", "").strip()
+    if not description:
+        raise HTTPException(status_code=400, detail="Field 'description' is required")
+
+    title = payload.get("title", "").strip() or "Untitled Project"
+    url = payload.get("url", "").strip() or ""
+    profile_key = payload.get("profile_key", "").strip() or "web"
+    budget_size = payload.get("budget_size", "unknown").strip()
+
+    # Build a minimal project dict for the bid generator
+    project: Dict[str, Any] = {
+        "title": title,
+        "description": description,
+        "seo_url": "",
+    }
+
+    # Build a minimal analysis dict (we skip phase 1 for manual bids)
+    analysis: Dict[str, Any] = {
+        "summary": description[:300] + "..." if len(description) > 300 else description,
+        "category": "other",
+        "rough_score": 70,
+        "automation_potential": 50,
+        "manual_work_notes": "",
+    }
+
+    profile = _build_profile(profile_key)
+
+    # Determine milestone count from budget size
+    size_to_count = {
+        "small": 2,
+        "medium": 3,
+        "large": 4,
+        "unknown": 3,
+    }
+    milestone_count = size_to_count.get(budget_size, 3)
+
+    bid = generate_bid_for_project(
+        project=project,
+        analysis=analysis,
+        profile=profile,
+        milestone_size=budget_size,
+        milestone_count=milestone_count,
+        project_url=url,
+    )
+
+    return {
+        "ok": True,
+        "title": title,
+        "proposal_text": bid.get("proposal_text", ""),
+        "milestone_plan": bid.get("milestone_plan", {}),
+        "free_demo_offered": bid.get("free_demo_offered", False),
+        "free_demo_reason": bid.get("free_demo_reason", ""),
+    }
