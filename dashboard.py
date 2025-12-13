@@ -732,6 +732,114 @@ async def api_approve_prompt_version(version_key: str) -> Dict[str, Any]:
     return {"ok": True}
 
 
+@app.get("/api/prompt-versions/{version_key}/content")
+async def api_get_prompt_content(version_key: str) -> Dict[str, Any]:
+    """Get the full content of a prompt version."""
+    from prompt_manager import load_prompt
+    content = load_prompt(version_key)
+    if content is None:
+        raise HTTPException(status_code=404, detail="Prompt version not found")
+    return {"ok": True, "content": content}
+
+
+@app.put("/api/prompt-versions/{version_key}")
+async def api_update_prompt_version(version_key: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Update a prompt version's content and metadata."""
+    from prompt_manager import PROMPTS_DIR
+    import re
+    
+    name = payload.get("name", "").strip()
+    description = payload.get("description", "").strip()
+    content = payload.get("content", "").strip()
+    
+    if not content:
+        raise HTTPException(status_code=400, detail="Content is required")
+    
+    # Find the file
+    safe_key = re.sub(r'[^a-zA-Z0-9_-]', '_', version_key)
+    file_path = PROMPTS_DIR / f"{safe_key}.md"
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Prompt version not found")
+    
+    # Update the header metadata in the content
+    lines = content.split("\n")
+    new_lines = []
+    metadata_updated = {"version": False, "name": False, "description": False}
+    
+    for line in lines:
+        if line.startswith("# Prompt Version:") and not metadata_updated["version"]:
+            new_lines.append(f"# Prompt Version: {version_key}")
+            metadata_updated["version"] = True
+        elif line.startswith("# Name:") and not metadata_updated["name"]:
+            new_lines.append(f"# Name: {name}")
+            metadata_updated["name"] = True
+        elif line.startswith("# Description:") and not metadata_updated["description"]:
+            new_lines.append(f"# Description: {description}")
+            metadata_updated["description"] = True
+        else:
+            new_lines.append(line)
+    
+    final_content = "\n".join(new_lines)
+    
+    # Write file
+    file_path.write_text(final_content, encoding="utf-8")
+    
+    # Update database
+    from bid_history import register_prompt_version
+    register_prompt_version(
+        version_key=version_key,
+        name=name,
+        description=description,
+    )
+    
+    return {"ok": True}
+
+
+@app.post("/api/prompt-versions")
+async def api_create_prompt_version(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a new prompt version."""
+    from prompt_manager import create_prompt_version
+    
+    version_key = payload.get("version_key", "").strip()
+    name = payload.get("name", "").strip()
+    description = payload.get("description", "").strip()
+    content = payload.get("content", "").strip()
+    
+    if not version_key or not name:
+        raise HTTPException(status_code=400, detail="version_key and name are required")
+    
+    success = create_prompt_version(
+        version_key=version_key,
+        name=name,
+        description=description,
+        content=content,
+        status="testing"
+    )
+    
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to create prompt version")
+    
+    return {"ok": True}
+
+
+# ----- Prompt Editor Page -----
+
+@app.get("/prompt-editor", response_class=HTMLResponse)
+async def prompt_editor_page(request: Request):
+    """Page for editing prompt versions."""
+    prompt_versions = get_prompt_versions()
+    
+    return templates.TemplateResponse(
+        "prompt_editor.html",
+        {
+            "request": request,
+            "prompt_versions": prompt_versions,
+            "active_page": "prompt_editor",
+        },
+    )
+
+
 # ----- Bid History Page -----
 
 @app.get("/bid-history", response_class=HTMLResponse)

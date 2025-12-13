@@ -1,0 +1,577 @@
+{% extends "base.html" %}
+
+{% block title %}Prompt Editor{% endblock %}
+
+{% block content %}
+<style>
+  .editor-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .page-header h2 {
+    margin: 0;
+  }
+  .editor-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 900px) {
+    .editor-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .version-list {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .version-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #334155;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .version-item:last-child {
+    border-bottom: none;
+  }
+  .version-item:hover {
+    background: #334155;
+  }
+  .version-item.active {
+    background: #2563eb;
+  }
+  .version-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #e5e7eb;
+  }
+  .version-meta {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-approved {
+    background: #166534;
+    color: #dcfce7;
+  }
+  .badge-testing {
+    background: #92400e;
+    color: #fef3c7;
+  }
+  .badge-active {
+    background: #1e40af;
+    color: #dbeafe;
+  }
+  .new-version-btn {
+    background: #334155;
+    border: 1px dashed #475569;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    color: #94a3b8;
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .new-version-btn:hover {
+    background: #475569;
+    color: #e5e7eb;
+  }
+  .editor-main {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1.25rem;
+  }
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .editor-title-group {
+    flex: 1;
+  }
+  .editor-title-group input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    background: #0f172a;
+    color: #e5e7eb;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .editor-title-group input:focus {
+    outline: none;
+    border-color: #2563eb;
+  }
+  .editor-desc {
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    background: #0f172a;
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+  .editor-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: #2563eb;
+    color: white;
+  }
+  .btn-primary:hover {
+    background: #1d4ed8;
+  }
+  .btn-secondary {
+    background: #475569;
+    color: #e5e7eb;
+  }
+  .btn-secondary:hover {
+    background: #64748b;
+  }
+  .btn-success {
+    background: #166534;
+    color: white;
+  }
+  .btn-success:hover {
+    background: #15803d;
+  }
+  .btn-danger {
+    background: #dc2626;
+    color: white;
+  }
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+  .prompt-textarea {
+    width: 100%;
+    min-height: 500px;
+    padding: 1rem;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    background: #0f172a;
+    color: #e5e7eb;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  .prompt-textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+  }
+  .stats-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #334155;
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .stat-value {
+    font-weight: 600;
+    color: #e5e7eb;
+  }
+  .help-section {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  .help-section h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+    color: #e5e7eb;
+  }
+  .help-section p {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin: 0.25rem 0;
+    line-height: 1.5;
+  }
+  .help-section code {
+    background: #334155;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+  }
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 100;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+  .toast.visible {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .toast-success {
+    background: #166534;
+    color: white;
+  }
+  .toast-error {
+    background: #dc2626;
+    color: white;
+  }
+  .no-selection {
+    text-align: center;
+    padding: 3rem;
+    color: #64748b;
+  }
+</style>
+
+<div class="editor-container">
+  <div class="page-header">
+    <h2>Prompt Editor</h2>
+    <a href="/manual-bid" style="color: #38bdf8; font-size: 0.9rem;">← Back to Manual Bid</a>
+  </div>
+
+  <div class="editor-grid">
+    <div class="sidebar">
+      <div class="version-list" id="versionList">
+        {% for v in prompt_versions %}
+        <div class="version-item {% if loop.first %}active{% endif %}" 
+             data-key="{{ v.version_key }}" 
+             onclick="selectVersion('{{ v.version_key }}')">
+          <div class="version-name">{{ v.name }}</div>
+          <div class="version-meta">
+            {% if v.is_active %}<span class="badge badge-active">Active</span>{% endif %}
+            {% if v.is_approved %}<span class="badge badge-approved">Approved</span>{% else %}<span class="badge badge-testing">Testing</span>{% endif %}
+            <span>{{ v.total_bids }} bids</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      
+      <button class="new-version-btn" onclick="createNewVersion()">+ New Prompt Version</button>
+
+      <div class="help-section">
+        <h4>Available Placeholders</h4>
+        <p><code>{PROJECT_TITLE}</code> - Project title</p>
+        <p><code>{PROJECT_DESCRIPTION}</code> - Full description</p>
+        <p><code>{PROJECT_URL}</code> - Freelancer.com URL</p>
+        <p><code>{PROFILE_LABEL}</code> - Your profile label</p>
+        <p><code>{PROFILE_GENERAL}</code> - General intro</p>
+        <p><code>{PROFILE_SECTION}</code> - Skills section</p>
+        <p><code>{PROFILE_LINK}</code> - Portfolio link</p>
+        <p><code>{EXTENDED_PROFILE}</code> - me.hiplus.de info</p>
+        <p><code>{MILESTONE_SIZE}</code> - small/medium/large</p>
+        <p><code>{MILESTONE_COUNT}</code> - Number of milestones</p>
+        <p><code>{LANGUAGE_OVERRIDE}</code> - Language instruction</p>
+        <p><code>{TONE_OVERRIDE}</code> - Tone instruction</p>
+      </div>
+    </div>
+
+    <div class="editor-main">
+      <div id="noSelection" class="no-selection">
+        Select a prompt version to edit
+      </div>
+
+      <div id="editorContent" style="display: none;">
+        <div class="editor-header">
+          <div class="editor-title-group">
+            <input type="text" id="promptName" placeholder="Prompt Name">
+            <input type="text" id="promptDesc" class="editor-desc" placeholder="Short description of this prompt version">
+          </div>
+          <div class="editor-actions">
+            <button class="btn btn-primary" onclick="savePrompt()">Save Changes</button>
+            <button class="btn btn-success" onclick="setAsActive()">Set as Active</button>
+            <button class="btn btn-secondary" onclick="approvePrompt()">Mark Approved</button>
+            <button class="btn btn-secondary" onclick="testPrompt()">Test Prompt</button>
+          </div>
+        </div>
+
+        <textarea id="promptContent" class="prompt-textarea" placeholder="Enter your prompt template here..."></textarea>
+
+        <div class="stats-row">
+          <div class="stat-item">
+            <span>Total Bids:</span>
+            <span class="stat-value" id="statTotal">0</span>
+          </div>
+          <div class="stat-item">
+            <span>Won:</span>
+            <span class="stat-value" id="statWon">0</span>
+          </div>
+          <div class="stat-item">
+            <span>Engaged:</span>
+            <span class="stat-value" id="statEngaged">0</span>
+          </div>
+          <div class="stat-item">
+            <span>Success Rate:</span>
+            <span class="stat-value" id="statRate">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let currentVersionKey = null;
+  let promptsData = {};
+  let hasUnsavedChanges = false;
+
+  // Load initial data
+  {% for v in prompt_versions %}
+  promptsData['{{ v.version_key }}'] = {
+    key: '{{ v.version_key }}',
+    name: '{{ v.name }}',
+    description: '{{ v.description|e }}',
+    is_active: {{ 'true' if v.is_active else 'false' }},
+    is_approved: {{ 'true' if v.is_approved else 'false' }},
+    total_bids: {{ v.total_bids }},
+    won_bids: {{ v.won_bids }},
+    engaged_bids: {{ v.engaged_bids }},
+    success_rate: {{ v.success_rate }},
+    content: null  // Will be loaded on demand
+  };
+  {% endfor %}
+
+  // Select first version on load
+  {% if prompt_versions %}
+  document.addEventListener('DOMContentLoaded', function() {
+    selectVersion('{{ prompt_versions[0].version_key }}');
+  });
+  {% endif %}
+
+  async function selectVersion(key) {
+    if (hasUnsavedChanges && !confirm('You have unsaved changes. Discard them?')) {
+      return;
+    }
+
+    currentVersionKey = key;
+    hasUnsavedChanges = false;
+
+    // Update sidebar selection
+    document.querySelectorAll('.version-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.key === key);
+    });
+
+    // Show editor
+    document.getElementById('noSelection').style.display = 'none';
+    document.getElementById('editorContent').style.display = 'block';
+
+    const data = promptsData[key];
+    document.getElementById('promptName').value = data.name;
+    document.getElementById('promptDesc').value = data.description;
+    document.getElementById('statTotal').textContent = data.total_bids;
+    document.getElementById('statWon').textContent = data.won_bids;
+    document.getElementById('statEngaged').textContent = data.engaged_bids;
+    document.getElementById('statRate').textContent = Math.round(data.success_rate * 100) + '%';
+
+    // Load content if not cached
+    if (data.content === null) {
+      try {
+        const response = await fetch(`/api/prompt-versions/${key}/content`);
+        const result = await response.json();
+        if (result.ok) {
+          data.content = result.content;
+        } else {
+          data.content = '# Error loading prompt content';
+        }
+      } catch (e) {
+        data.content = '# Error loading prompt content';
+      }
+    }
+
+    document.getElementById('promptContent').value = data.content;
+  }
+
+  async function savePrompt() {
+    if (!currentVersionKey) return;
+
+    const payload = {
+      name: document.getElementById('promptName').value,
+      description: document.getElementById('promptDesc').value,
+      content: document.getElementById('promptContent').value
+    };
+
+    try {
+      const response = await fetch(`/api/prompt-versions/${currentVersionKey}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (result.ok) {
+        // Update local cache
+        promptsData[currentVersionKey].name = payload.name;
+        promptsData[currentVersionKey].description = payload.description;
+        promptsData[currentVersionKey].content = payload.content;
+
+        // Update sidebar
+        const item = document.querySelector(`.version-item[data-key="${currentVersionKey}"]`);
+        if (item) {
+          item.querySelector('.version-name').textContent = payload.name;
+        }
+
+        hasUnsavedChanges = false;
+        showToast('Prompt saved successfully', 'success');
+      } else {
+        showToast(result.detail || 'Failed to save', 'error');
+      }
+    } catch (e) {
+      showToast('Error saving prompt', 'error');
+    }
+  }
+
+  async function setAsActive() {
+    if (!currentVersionKey) return;
+
+    try {
+      const response = await fetch(`/api/prompt-versions/${currentVersionKey}/activate`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+      if (result.ok) {
+        // Update local state
+        Object.keys(promptsData).forEach(k => promptsData[k].is_active = false);
+        promptsData[currentVersionKey].is_active = true;
+
+        // Reload page to update badges
+        showToast('Prompt set as active', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(result.detail || 'Failed to activate', 'error');
+      }
+    } catch (e) {
+      showToast('Error activating prompt', 'error');
+    }
+  }
+
+  async function approvePrompt() {
+    if (!currentVersionKey) return;
+
+    try {
+      const response = await fetch(`/api/prompt-versions/${currentVersionKey}/approve`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+      if (result.ok) {
+        promptsData[currentVersionKey].is_approved = true;
+        showToast('Prompt marked as approved', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(result.detail || 'Failed to approve', 'error');
+      }
+    } catch (e) {
+      showToast('Error approving prompt', 'error');
+    }
+  }
+
+  function testPrompt() {
+    // Open manual bid page with this prompt pre-selected
+    window.open(`/manual-bid?prompt=${currentVersionKey}`, '_blank');
+  }
+
+  function createNewVersion() {
+    const name = prompt('Enter a name for the new prompt version:');
+    if (!name) return;
+
+    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    
+    // Create with minimal content
+    fetch('/api/prompt-versions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version_key: key,
+        name: name,
+        description: 'New prompt version',
+        content: '# ' + name + '\n\nEnter your prompt template here.\n\nUse placeholders like {PROJECT_TITLE}, {PROJECT_DESCRIPTION}, etc.'
+      })
+    })
+    .then(r => r.json())
+    .then(result => {
+      if (result.ok) {
+        showToast('New prompt created', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(result.detail || 'Failed to create', 'error');
+      }
+    })
+    .catch(() => showToast('Error creating prompt', 'error'));
+  }
+
+  // Track changes
+  document.getElementById('promptContent').addEventListener('input', () => hasUnsavedChanges = true);
+  document.getElementById('promptName').addEventListener('input', () => hasUnsavedChanges = true);
+  document.getElementById('promptDesc').addEventListener('input', () => hasUnsavedChanges = true);
+
+  // Warn on leave
+  window.addEventListener('beforeunload', (e) => {
+    if (hasUnsavedChanges) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast toast-' + type + ' visible';
+    setTimeout(() => toast.classList.remove('visible'), 3000);
+  }
+</script>
+{% endblock %}
