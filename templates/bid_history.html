@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+
+{% block title %}Bid History & Learning{% endblock %}
+
+{% block content %}
+<style>
+  .history-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .page-header h2 {
+    margin: 0;
+  }
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+  }
+  .stat-card.highlight {
+    background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%);
+    border-color: #a5b4fc;
+  }
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 0.25rem;
+  }
+  .section-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 900px) {
+    .section-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .section-box {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.25rem;
+  }
+  .section-box h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: #1e293b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .filter-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    background: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover {
+    border-color: #94a3b8;
+  }
+  .filter-btn.active {
+    background: #1e293b;
+    color: white;
+    border-color: #1e293b;
+  }
+  .bid-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  .bid-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bid-card:hover {
+    border-color: #94a3b8;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .bid-card.selected {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+  .bid-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .bid-title {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.9rem;
+  }
+  .bid-meta {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.4rem;
+  }
+  .bid-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .status-won {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .status-engaged {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .status-viewed {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .status-pending {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+  .status-rejected {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+  .bid-detail-panel {
+    position: sticky;
+    top: 1rem;
+  }
+  .detail-content {
+    display: none;
+  }
+  .detail-content.visible {
+    display: block;
+  }
+  .detail-header {
+    margin-bottom: 1rem;
+  }
+  .detail-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+  .detail-meta {
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+  .detail-section {
+    margin-bottom: 1rem;
+  }
+  .detail-section h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0 0 0.5rem 0;
+  }
+  .detail-text {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .outcome-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .outcome-btn {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .outcome-btn:hover {
+    border-color: #9ca3af;
+  }
+  .outcome-btn.selected {
+    background: #166534;
+    color: white;
+    border-color: #166534;
+  }
+  .prompt-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .prompt-stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border-radius: 4px;
+    font-size: 0.85rem;
+  }
+  .prompt-stat-name {
+    font-weight: 500;
+    color: #1e293b;
+  }
+  .prompt-stat-bar {
+    width: 60px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    margin-left: 0.5rem;
+    overflow: hidden;
+  }
+  .prompt-stat-fill {
+    height: 100%;
+    background: #22c55e;
+    border-radius: 3px;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #64748b;
+  }
+  .copy-btn {
+    background: #e2e8f0;
+    border: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .copy-btn:hover {
+    background: #cbd5e1;
+  }
+</style>
+
+<div class="history-container">
+  <div class="page-header">
+    <h2>Bid History & Learning</h2>
+    <a href="/manual-bid" style="color: #2563eb; font-size: 0.9rem;">← Back to Generator</a>
+  </div>
+
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="stat-number">{{ stats.total_bids }}</div>
+      <div class="stat-label">Total Bids</div>
+    </div>
+    <div class="stat-card highlight">
+      <div class="stat-number">{{ stats.won }}</div>
+      <div class="stat-label">Won</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ stats.engaged }}</div>
+      <div class="stat-label">Engaged</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ stats.viewed }}</div>
+      <div class="stat-label">Viewed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ "%.1f"|format(stats.win_rate) }}%</div>
+      <div class="stat-label">Win Rate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ stats.pending }}</div>
+      <div class="stat-label">Pending</div>
+    </div>
+  </div>
+
+  <div class="section-grid">
+    <div class="section-box">
+      <h3>
+        All Bids
+        <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">Click to view details</span>
+      </h3>
+      
+      <div class="filter-row">
+        <button class="filter-btn active" data-filter="all" onclick="filterBids('all', this)">All</button>
+        <button class="filter-btn" data-filter="pending" onclick="filterBids('pending', this)">Pending</button>
+        <button class="filter-btn" data-filter="viewed" onclick="filterBids('viewed', this)">Viewed</button>
+        <button class="filter-btn" data-filter="engaged" onclick="filterBids('engaged', this)">Engaged</button>
+        <button class="filter-btn" data-filter="won" onclick="filterBids('won', this)">Won</button>
+      </div>
+
+      <div class="bid-list" id="bidList">
+        {% for bid in recent_bids %}
+        <div class="bid-card" data-bid-id="{{ bid.id }}" data-outcome="{{ bid.outcome }}" onclick="selectBid({{ bid.id }})">
+          <div class="bid-card-header">
+            <div class="bid-title">{{ bid.project_title }}</div>
+            <span class="bid-status 
+              {% if bid.was_won %}status-won{% elif bid.was_engaged %}status-engaged{% elif bid.was_viewed %}status-viewed{% elif bid.outcome == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
+              {% if bid.was_won %}Won{% elif bid.was_engaged %}Engaged{% elif bid.was_viewed %}Viewed{% elif bid.outcome == 'rejected' %}No Response{% else %}Pending{% endif %}
+            </span>
+          </div>
+          <div class="bid-meta">
+            {{ bid.prompt_version }} · {{ bid.project_type or 'other' }} · {{ bid.created_at[:10] }}
+          </div>
+        </div>
+        {% endfor %}
+        {% if not recent_bids %}
+        <div class="empty-state">No bids yet. Generate your first bid!</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="bid-detail-panel">
+      <div class="section-box">
+        <h3>Bid Details</h3>
+        
+        <div id="noSelection" class="empty-state">
+          Select a bid to view details
+        </div>
+
+        <div class="detail-content" id="detailContent">
+          <div class="detail-header">
+            <div class="detail-title" id="detailTitle">-</div>
+            <div class="detail-meta" id="detailMeta">-</div>
+          </div>
+
+          <div class="detail-section">
+            <h4>
+              Proposal Text
+              <button class="copy-btn" onclick="copyDetailText()">Copy</button>
+            </h4>
+            <div class="detail-text" id="detailProposal">-</div>
+          </div>
+
+          <div class="detail-section">
+            <h4>Update Outcome</h4>
+            <div class="outcome-buttons" id="outcomeButtons">
+              <button class="outcome-btn" data-outcome="viewed" onclick="updateOutcome('viewed', this)">Viewed</button>
+              <button class="outcome-btn" data-outcome="engaged" onclick="updateOutcome('engaged', this)">Engaged</button>
+              <button class="outcome-btn" data-outcome="high_rank" onclick="updateOutcome('high_rank', this)">High Rank</button>
+              <button class="outcome-btn" data-outcome="won" onclick="updateOutcome('won', this)">Won!</button>
+              <button class="outcome-btn" data-outcome="rejected" onclick="updateOutcome('rejected', this)">No Response</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-box" style="margin-top: 1rem;">
+        <h3>Prompt Performance</h3>
+        <div class="prompt-stats-list">
+          {% for v in prompt_versions %}
+          <div class="prompt-stat-item">
+            <span class="prompt-stat-name">{{ v.name }}</span>
+            <div style="display: flex; align-items: center;">
+              <span style="font-size: 0.8rem; color: #64748b;">{{ v.won_bids }}/{{ v.total_bids }}</span>
+              <div class="prompt-stat-bar">
+                <div class="prompt-stat-fill" style="width: {{ (v.success_rate * 100)|int }}%;"></div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          {% if not prompt_versions %}
+          <div class="empty-state" style="padding: 1rem;">No prompt versions registered yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let selectedBidId = null;
+  let bidsData = {};
+
+  // Load all bids data
+  {% for bid in recent_bids %}
+  bidsData[{{ bid.id }}] = {
+    id: {{ bid.id }},
+    title: "{{ bid.project_title|e }}",
+    proposal: `{{ bid.bid_text|e }}`,
+    prompt_version: "{{ bid.prompt_version }}",
+    project_type: "{{ bid.project_type or 'other' }}",
+    created_at: "{{ bid.created_at }}",
+    outcome: "{{ bid.outcome }}",
+    was_viewed: {{ 'true' if bid.was_viewed else 'false' }},
+    was_engaged: {{ 'true' if bid.was_engaged else 'false' }},
+    was_won: {{ 'true' if bid.was_won else 'false' }},
+    was_high_rank: {{ 'true' if bid.was_high_rank else 'false' }}
+  };
+  {% endfor %}
+
+  function selectBid(bidId) {
+    selectedBidId = bidId;
+    const bid = bidsData[bidId];
+    
+    // Update selection UI
+    document.querySelectorAll('.bid-card').forEach(card => {
+      card.classList.toggle('selected', parseInt(card.dataset.bidId) === bidId);
+    });
+
+    // Show detail panel
+    document.getElementById('noSelection').style.display = 'none';
+    document.getElementById('detailContent').classList.add('visible');
+
+    // Populate details
+    document.getElementById('detailTitle').textContent = bid.title;
+    document.getElementById('detailMeta').textContent = `${bid.prompt_version} · ${bid.project_type} · ${bid.created_at.substring(0, 10)}`;
+    document.getElementById('detailProposal').textContent = bid.proposal;
+
+    // Update outcome buttons
+    document.querySelectorAll('#outcomeButtons .outcome-btn').forEach(btn => {
+      const outcome = btn.dataset.outcome;
+      const isSelected = 
+        (outcome === 'won' && bid.was_won) ||
+        (outcome === 'engaged' && bid.was_engaged && !bid.was_won) ||
+        (outcome === 'viewed' && bid.was_viewed && !bid.was_engaged) ||
+        (outcome === 'high_rank' && bid.was_high_rank) ||
+        (outcome === 'rejected' && bid.outcome === 'rejected');
+      btn.classList.toggle('selected', isSelected);
+    });
+  }
+
+  function filterBids(filter, btn) {
+    // Update filter buttons
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Filter bid cards
+    document.querySelectorAll('.bid-card').forEach(card => {
+      const outcome = card.dataset.outcome;
+      const statusSpan = card.querySelector('.bid-status');
+      
+      let show = false;
+      if (filter === 'all') {
+        show = true;
+      } else if (filter === 'pending') {
+        show = statusSpan.classList.contains('status-pending');
+      } else if (filter === 'viewed') {
+        show = statusSpan.classList.contains('status-viewed');
+      } else if (filter === 'engaged') {
+        show = statusSpan.classList.contains('status-engaged');
+      } else if (filter === 'won') {
+        show = statusSpan.classList.contains('status-won');
+      }
+      
+      card.style.display = show ? '' : 'none';
+    });
+  }
+
+  async function updateOutcome(outcome, btn) {
+    if (!selectedBidId) return;
+
+    const payload = {
+      outcome: outcome,
+      was_viewed: outcome === 'viewed' || outcome === 'engaged' || outcome === 'won' || outcome === 'high_rank',
+      was_engaged: outcome === 'engaged' || outcome === 'won',
+      was_won: outcome === 'won',
+      was_high_rank: outcome === 'high_rank',
+    };
+
+    try {
+      const response = await fetch(`/api/bids/${selectedBidId}/outcome`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update outcome');
+      }
+
+      // Update local data
+      bidsData[selectedBidId].outcome = outcome;
+      bidsData[selectedBidId].was_viewed = payload.was_viewed;
+      bidsData[selectedBidId].was_engaged = payload.was_engaged;
+      bidsData[selectedBidId].was_won = payload.was_won;
+      bidsData[selectedBidId].was_high_rank = payload.was_high_rank;
+
+      // Update UI
+      document.querySelectorAll('#outcomeButtons .outcome-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+      // Update card status
+      const card = document.querySelector(`.bid-card[data-bid-id="${selectedBidId}"]`);
+      if (card) {
+        const statusSpan = card.querySelector('.bid-status');
+        statusSpan.className = 'bid-status';
+        if (outcome === 'won') {
+          statusSpan.classList.add('status-won');
+          statusSpan.textContent = 'Won';
+        } else if (outcome === 'engaged') {
+          statusSpan.classList.add('status-engaged');
+          statusSpan.textContent = 'Engaged';
+        } else if (outcome === 'viewed' || outcome === 'high_rank') {
+          statusSpan.classList.add('status-viewed');
+          statusSpan.textContent = outcome === 'high_rank' ? 'High Rank' : 'Viewed';
+        } else if (outcome === 'rejected') {
+          statusSpan.classList.add('status-rejected');
+          statusSpan.textContent = 'No Response';
+        } else {
+          statusSpan.classList.add('status-pending');
+          statusSpan.textContent = 'Pending';
+        }
+      }
+
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  function copyDetailText() {
+    const text = document.getElementById('detailProposal').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = event.target;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+</script>
+{% endblock %}

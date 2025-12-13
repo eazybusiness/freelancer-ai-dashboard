@@ -1,0 +1,80 @@
+{
+  "source": "me.hiplus.de",
+  "last_updated": "2025-12-13",
+  "name": "Nils Peters",
+  "tagline": "Where strategy meets code. Building solutions that drive real business value.",
+  
+  "summary": {
+    "business_leader": "20+ years of C-level experience in tech, e-commerce, and industrial sectors",
+    "full_stack_developer": "Expert in modern web technologies, mobile apps, and enterprise systems",
+    "global_mindset": "Trilingual professional with experience across 3 continents"
+  },
+  
+  "core_expertise": {
+    "full_stack": "Complete web applications from React/Vue frontends to Node.js/Python backends with modern cloud infrastructure.",
+    "mobile": "Native and cross-platform mobile apps for iOS and Android using React Native and Flutter.",
+    "erp_business": "Odoo implementations, customizations, and integrations for streamlined business operations.",
+    "consulting": "Strategic technology advisory helping businesses make informed decisions about their tech stack."
+  },
+  
+  "featured_projects": [
+    {
+      "name": "Full-Stack Shop",
+      "description": "Full-stack e-commerce web application built with React, Redux Toolkit, Node.js, Express, and Supabase, featuring a modern product catalogue, shopping cart, JWT authentication, Stripe checkout integration, and MetaMask wallet support."
+    },
+    {
+      "name": "Shopify Promo Image Manager",
+      "description": "A Python CLI tool for automating promotional image overlays on Shopify product catalogs. Dynamically calculates discount percentages, applies seasonal graphics, and manages campaign lifecycles."
+    },
+    {
+      "name": "Freelancer AI Dashboard",
+      "description": "AI-powered tool that gets the latest job offers from freelancer.com, rates and summarizes them, details risks and opportunities, and writes tailored bids."
+    },
+    {
+      "name": "Price Comparison Scraping Backend",
+      "description": "Prototype backend for a price comparison portal using Python, FastAPI, and a scraping layer for multiple shops."
+    },
+    {
+      "name": "German Address Verification Service",
+      "description": "Production-ready FastAPI service for German address verification, phonetic matching, and geocoding backed by PostgreSQL and PostGIS."
+    },
+    {
+      "name": "Mobile Benefits Dashboard",
+      "description": "Member benefits dashboard prototype built with React Native and Expo, including an HTML admin console with Chart.js analytics."
+    }
+  ],
+  
+  "testimonials": [
+    {
+      "company": "Octopus.tools",
+      "text": "Working with Nils was a game-changer for us. We faced a significant accounting issue within our Odoo installation. Nils not only understood the complexities but also provided a tailored solution. His expertise and dedication were evident throughout."
+    },
+    {
+      "company": "Incubout Spain",
+      "text": "Our experience with Nils has been exceptional. He provided comprehensive support for our Odoo implementation from day one, meticulously handling setup and configuration. His staff training sessions empowered our team to navigate the new system confidently."
+    }
+  ],
+  
+  "contact": {
+    "email": "info@hiplus.de",
+    "linkedin": "https://www.linkedin.com/in/nils-peters-6b34381b/",
+    "location": "Germany / Spain",
+    "response_time": "Within 24 hours"
+  },
+  
+  "usps": [
+    "20+ years C-level experience - understands business context, not just code",
+    "End-to-end ownership - from requirements to deployment to maintenance",
+    "Trilingual (German/English/Spanish) - works with international clients seamlessly",
+    "Business-first mindset - optimizes for ROI, not just features",
+    "Predictable delivery - fewer surprises, realistic timelines, professional communication"
+  ],
+  
+  "portfolio_links": {
+    "main": "https://me.hiplus.de",
+    "web": "https://me.hiplus.de#projects",
+    "mobile": "https://me.hiplus.de#projects",
+    "coding": "https://me.hiplus.de#projects",
+    "hybrid": "https://me.hiplus.de#projects"
+  }
+}

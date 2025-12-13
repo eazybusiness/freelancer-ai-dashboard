@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 BASE_DIR = Path(__file__).resolve().parent
 PROFILES_PATH = BASE_DIR / "config" / "profiles.json"
+PRIVATE_PROFILES_PATH = BASE_DIR / "config" / "profiles.private.json"
 
 
 DEFAULT_PROFILES: Dict[str, Dict[str, str]] = {
@@ -72,19 +73,42 @@ def _merge_with_defaults(stored: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
 
 
 def load_profiles() -> Dict[str, Dict[str, str]]:
-    if not PROFILES_PATH.exists():
-        return {k: dict(v) for k, v in DEFAULT_PROFILES.items()}
-    try:
-        with PROFILES_PATH.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception:
-        return {k: dict(v) for k, v in DEFAULT_PROFILES.items()}
+    # Start from public profiles (or defaults if file is missing/broken).
+    if PROFILES_PATH.exists():
+        try:
+            with PROFILES_PATH.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+    else:
+        data = {}
 
-    raw_profiles = data.get("profiles")
-    if not isinstance(raw_profiles, dict):
-        return {k: dict(v) for k, v in DEFAULT_PROFILES.items()}
+    raw_profiles = data.get("profiles") if isinstance(data, dict) else None
+    if isinstance(raw_profiles, dict):
+        profiles = _merge_with_defaults(raw_profiles)
+    else:
+        profiles = {k: dict(v) for k, v in DEFAULT_PROFILES.items()}
 
-    return _merge_with_defaults(raw_profiles)
+    # Optional: local override file with personalized profiles.
+    if PRIVATE_PROFILES_PATH.exists():
+        try:
+            with PRIVATE_PROFILES_PATH.open("r", encoding="utf-8") as f:
+                private_data = json.load(f)
+        except Exception:
+            private_data = {}
+
+        private_raw = private_data.get("profiles") if isinstance(private_data, dict) else None
+        if isinstance(private_raw, dict):
+            for key, value in private_raw.items():
+                if not isinstance(value, dict):
+                    continue
+                base = profiles.get(key, {}).copy()
+                for field in ("label", "link", "general", "section"):
+                    if field in value and isinstance(value[field], str):
+                        base[field] = value[field]
+                profiles[key] = base
+
+    return profiles
 
 
 def save_profiles(profiles: Dict[str, Dict[str, str]]) -> None:

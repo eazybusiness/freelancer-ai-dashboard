@@ -5,30 +5,76 @@
 {% block content %}
 <style>
   .manual-bid-container {
-    max-width: 900px;
+    max-width: 1100px;
     margin: 0 auto;
   }
-  .form-group {
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1.5rem;
+  }
+  .page-header h2 {
+    margin: 0;
+  }
+  .stats-bar {
+    display: flex;
+    gap: 1.5rem;
+    background: #f1f5f9;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .stat-value {
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .stat-label {
+    color: #64748b;
+  }
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.5rem;
+  }
+  @media (max-width: 900px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .form-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  .form-group {
+    margin-bottom: 1.25rem;
   }
   .form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     color: #333;
+    font-size: 0.9rem;
   }
   .form-group textarea,
   .form-group input,
   .form-group select {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.65rem;
     border: 1px solid #ddd;
     border-radius: 6px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-family: inherit;
   }
   .form-group textarea {
-    min-height: 200px;
+    min-height: 180px;
     resize: vertical;
   }
   .form-group input:focus,
@@ -39,32 +85,130 @@
     box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.15);
   }
   .form-row {
-    display: flex;
-    gap: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
   }
   .form-row .form-group {
-    flex: 1;
+    margin-bottom: 0;
   }
-  .generate-btn {
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 0.85rem 2rem;
+  .btn {
+    padding: 0.7rem 1.5rem;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    border: none;
+    transition: all 0.2s;
   }
-  .generate-btn:hover {
+  .btn-primary {
+    background: #2563eb;
+    color: white;
+  }
+  .btn-primary:hover {
     background: #1d4ed8;
   }
-  .generate-btn:disabled {
+  .btn-primary:disabled {
     background: #94a3b8;
     cursor: not-allowed;
   }
+  .btn-secondary {
+    background: #e2e8f0;
+    color: #475569;
+  }
+  .btn-secondary:hover {
+    background: #cbd5e1;
+  }
+  .btn-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .sidebar-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .sidebar-section h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.95rem;
+    color: #1e293b;
+  }
+  .prompt-version-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .prompt-version-item:hover {
+    background: #f1f5f9;
+  }
+  .prompt-version-item.active {
+    background: #dbeafe;
+  }
+  .prompt-version-item input[type="radio"] {
+    width: auto;
+  }
+  .version-stats {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-approved {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .badge-testing {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .badge-active {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .recent-bids-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .recent-bid-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.85rem;
+  }
+  .recent-bid-item:last-child {
+    border-bottom: none;
+  }
+  .recent-bid-title {
+    font-weight: 500;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .recent-bid-meta {
+    color: #64748b;
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+  }
   .result-section {
-    margin-top: 2rem;
+    margin-top: 1.5rem;
     display: none;
   }
   .result-section.visible {
@@ -79,7 +223,7 @@
   }
   .result-box h3 {
     margin: 0 0 1rem 0;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #475569;
     display: flex;
     justify-content: space-between;
@@ -90,15 +234,28 @@
     word-wrap: break-word;
     margin: 0;
     font-family: inherit;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     line-height: 1.6;
+  }
+  .result-meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #e0f2fe;
+    border-radius: 6px;
+    font-size: 0.85rem;
+  }
+  .result-meta span {
+    color: #0369a1;
   }
   .copy-btn {
     background: #e2e8f0;
     border: none;
     padding: 0.4rem 0.8rem;
     border-radius: 4px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: background 0.2s;
   }
@@ -109,7 +266,7 @@
     background: #86efac;
   }
   .milestone-item {
-    padding: 0.75rem 0;
+    padding: 0.6rem 0;
     border-bottom: 1px solid #e2e8f0;
   }
   .milestone-item:last-child {
@@ -118,11 +275,12 @@
   .milestone-title {
     font-weight: 600;
     color: #1e293b;
+    font-size: 0.9rem;
   }
   .milestone-desc {
     color: #64748b;
-    font-size: 0.9rem;
-    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    margin-top: 0.2rem;
   }
   .loading {
     display: none;
@@ -134,8 +292,8 @@
     display: flex;
   }
   .spinner {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border: 2px solid #e2e8f0;
     border-top-color: #2563eb;
     border-radius: 50%;
@@ -161,96 +319,250 @@
     border: 1px solid #fef08a;
     padding: 0.75rem 1rem;
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #854d0e;
     margin-top: 1rem;
+  }
+  .outcome-section {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  .outcome-section h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+    color: #166534;
+  }
+  .outcome-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .outcome-btn {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .outcome-btn:hover {
+    border-color: #9ca3af;
+  }
+  .outcome-btn.selected {
+    background: #166534;
+    color: white;
+    border-color: #166534;
+  }
+  .help-text {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.3rem;
   }
 </style>
 
 <div class="manual-bid-container">
-  <h2>Manual Bid Generator</h2>
-  <p style="color: #64748b; margin-bottom: 1.5rem;">
-    Paste a project description from Freelancer.com and generate a tailored proposal using your profiles.
-  </p>
+  <div class="page-header">
+    <h2>Manual Bid Generator</h2>
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-value">{{ stats.total_bids }}</span>
+        <span class="stat-label">Bids</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">{{ stats.won }}</span>
+        <span class="stat-label">Won</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">{{ "%.1f"|format(stats.win_rate) }}%</span>
+        <span class="stat-label">Win Rate</span>
+      </div>
+    </div>
+  </div>
 
-  <form id="bidForm">
-    <div class="form-group">
-      <label for="projectTitle">Project Title</label>
-      <input type="text" id="projectTitle" placeholder="e.g., Build a food delivery platform" />
+  <div class="main-grid">
+    <div class="form-section">
+      <form id="bidForm">
+        <div class="form-group">
+          <label for="projectTitle">Project Title</label>
+          <input type="text" id="projectTitle" placeholder="e.g., Build a food delivery platform" />
+        </div>
+
+        <div class="form-group">
+          <label for="projectDescription">Project Description *</label>
+          <textarea id="projectDescription" placeholder="Paste the full project description here..." required></textarea>
+        </div>
+
+        <div class="form-row" style="margin-bottom: 1rem;">
+          <div class="form-group">
+            <label for="projectType">Project Type</label>
+            <select id="projectType">
+              {% for pt in project_types %}
+              <option value="{{ pt }}">{{ pt.replace('_', ' ').title() }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="languageSelect">Language</label>
+            <select id="languageSelect">
+              {% for lang in languages %}
+              <option value="{{ lang }}">{{ lang.upper() if lang != 'auto' else 'Auto-detect' }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="toneSelect">Tone</label>
+            <select id="toneSelect">
+              {% for t in tones %}
+              <option value="{{ t }}">{{ t.title() if t != 'auto' else 'Auto-detect' }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-bottom: 1rem;">
+          <div class="form-group">
+            <label for="budgetMin">Budget Min ($)</label>
+            <input type="number" id="budgetMin" placeholder="e.g., 200" />
+          </div>
+          <div class="form-group">
+            <label for="budgetMax">Budget Max ($)</label>
+            <input type="number" id="budgetMax" placeholder="e.g., 500" />
+          </div>
+          <div class="form-group">
+            <label for="projectUrl">Project URL</label>
+            <input type="text" id="projectUrl" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary" id="generateBtn">Generate Bid</button>
+          <button type="button" class="btn btn-secondary" id="compareBtn">Compare Versions</button>
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Generating...</span>
+          </div>
+        </div>
+      </form>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="result-section" id="resultSection">
+        <div class="result-meta" id="resultMeta">
+          <span><strong>Bid ID:</strong> <span id="bidIdDisplay">-</span></span>
+          <span><strong>Prompt:</strong> <span id="promptUsed">-</span></span>
+          <span><strong>Model:</strong> <span id="modelUsed">-</span></span>
+          <span><strong>Language:</strong> <span id="langDetected">-</span></span>
+          <span><strong>Tone:</strong> <span id="toneDetected">-</span></span>
+        </div>
+
+        <div class="result-box">
+          <h3>
+            Proposal Text
+            <button class="copy-btn" onclick="copyToClipboard('proposalText', this)">Copy</button>
+          </h3>
+          <pre id="proposalText"></pre>
+        </div>
+
+        <div class="result-box">
+          <h3>
+            Milestones
+            <button class="copy-btn" onclick="copyMilestones(this)">Copy</button>
+          </h3>
+          <div id="milestonesList"></div>
+        </div>
+
+        <div class="demo-note" id="demoNote" style="display: none;">
+          <strong>Free demo offered:</strong> <span id="demoReason"></span>
+        </div>
+
+        <div class="outcome-section" id="outcomeSection">
+          <h4>Track Outcome (for learning)</h4>
+          <p class="help-text">Mark what happened with this bid to improve future generations.</p>
+          <div class="outcome-buttons">
+            <button class="outcome-btn" data-outcome="viewed" onclick="markOutcome(this, 'viewed')">Viewed</button>
+            <button class="outcome-btn" data-outcome="engaged" onclick="markOutcome(this, 'engaged')">Engaged/Chat</button>
+            <button class="outcome-btn" data-outcome="high_rank" onclick="markOutcome(this, 'high_rank')">High Rank</button>
+            <button class="outcome-btn" data-outcome="won" onclick="markOutcome(this, 'won')">Won!</button>
+            <button class="outcome-btn" data-outcome="rejected" onclick="markOutcome(this, 'rejected')">No Response</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="projectDescription">Project Description *</label>
-      <textarea id="projectDescription" placeholder="Paste the full project description here..." required></textarea>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="profileSelect">Profile</label>
-        <select id="profileSelect">
-          {% for key, profile in profiles.items() %}
-          <option value="{{ key }}">{{ profile.label }}</option>
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h3>Prompt Version</h3>
+        <div id="promptVersionsList">
+          {% for v in prompt_versions %}
+          <label class="prompt-version-item {% if v.is_active %}active{% endif %}">
+            <input type="radio" name="promptVersion" value="{{ v.version_key }}" {% if v.is_active %}checked{% endif %}>
+            <div>
+              <div>{{ v.name }}</div>
+              <div style="font-size: 0.75rem; color: #64748b;">{{ v.description[:50] }}{% if v.description|length > 50 %}...{% endif %}</div>
+            </div>
+            <div class="version-stats">
+              {% if v.is_active %}<span class="badge badge-active">Active</span>{% endif %}
+              {% if v.is_approved %}<span class="badge badge-approved">Approved</span>{% else %}<span class="badge badge-testing">Testing</span>{% endif %}
+            </div>
+          </label>
           {% endfor %}
-        </select>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="budgetSize">Budget Size</label>
-        <select id="budgetSize">
-          <option value="unknown">Unknown</option>
-          <option value="small">Small (&lt; $200)</option>
-          <option value="medium">Medium ($200–$1000)</option>
-          <option value="large">Large (&gt; $1000)</option>
-        </select>
+
+      <div class="sidebar-section">
+        <h3>Recent Bids</h3>
+        <div class="recent-bids-list">
+          {% for bid in recent_bids %}
+          <div class="recent-bid-item">
+            <div class="recent-bid-title">{{ bid.project_title }}</div>
+            <div class="recent-bid-meta">
+              {{ bid.prompt_version }} · 
+              {% if bid.was_won %}Won{% elif bid.was_engaged %}Engaged{% elif bid.was_viewed %}Viewed{% else %}Pending{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+          {% if not recent_bids %}
+          <div style="color: #64748b; font-size: 0.85rem;">No bids yet.</div>
+          {% endif %}
+        </div>
+        <a href="/bid-history" style="display: block; margin-top: 0.75rem; font-size: 0.85rem; color: #2563eb;">View all history →</a>
       </div>
-    </div>
-
-    <div class="form-group">
-      <label for="projectUrl">Project URL (optional)</label>
-      <input type="text" id="projectUrl" placeholder="https://www.freelancer.com/projects/..." />
-    </div>
-
-    <button type="submit" class="generate-btn" id="generateBtn">Generate Bid</button>
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <span>Generating proposal...</span>
-    </div>
-  </form>
-
-  <div class="error-msg" id="errorMsg"></div>
-
-  <div class="result-section" id="resultSection">
-    <div class="result-box">
-      <h3>
-        Proposal Text
-        <button class="copy-btn" onclick="copyToClipboard('proposalText', this)">Copy</button>
-      </h3>
-      <pre id="proposalText"></pre>
-    </div>
-
-    <div class="result-box">
-      <h3>
-        Milestones
-        <button class="copy-btn" onclick="copyMilestones(this)">Copy</button>
-      </h3>
-      <div id="milestonesList"></div>
-    </div>
-
-    <div class="demo-note" id="demoNote" style="display: none;">
-      <strong>Free demo offered:</strong> <span id="demoReason"></span>
     </div>
   </div>
 </div>
 
 <script>
+  let currentBidId = null;
+
   const form = document.getElementById('bidForm');
   const generateBtn = document.getElementById('generateBtn');
+  const compareBtn = document.getElementById('compareBtn');
   const loading = document.getElementById('loading');
   const errorMsg = document.getElementById('errorMsg');
   const resultSection = document.getElementById('resultSection');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    await generateBid();
+  });
 
+  compareBtn.addEventListener('click', async () => {
+    // Get all selected prompt versions
+    const checked = document.querySelectorAll('input[name="promptVersion"]:checked');
+    if (checked.length === 0) {
+      showError('Select at least one prompt version');
+      return;
+    }
+    
+    // For compare, we'd need multiple selections - for now just generate with selected
+    await generateBid();
+  });
+
+  async function generateBid() {
     const description = document.getElementById('projectDescription').value.trim();
     if (!description) {
       showError('Please paste a project description.');
@@ -259,16 +571,23 @@
 
     // Show loading state
     generateBtn.disabled = true;
+    compareBtn.disabled = true;
     loading.classList.add('visible');
     errorMsg.classList.remove('visible');
     resultSection.classList.remove('visible');
+
+    const selectedPrompt = document.querySelector('input[name="promptVersion"]:checked');
 
     const payload = {
       title: document.getElementById('projectTitle').value.trim() || 'Untitled Project',
       description: description,
       url: document.getElementById('projectUrl').value.trim() || '',
-      profile_key: document.getElementById('profileSelect').value,
-      budget_size: document.getElementById('budgetSize').value
+      project_type: document.getElementById('projectType').value,
+      language: document.getElementById('languageSelect').value,
+      tone: document.getElementById('toneSelect').value,
+      prompt_version: selectedPrompt ? selectedPrompt.value : '',
+      budget_min: document.getElementById('budgetMin').value || null,
+      budget_max: document.getElementById('budgetMax').value || null,
     };
 
     try {
@@ -283,6 +602,16 @@
       if (!response.ok) {
         throw new Error(data.detail || 'Failed to generate bid');
       }
+
+      // Store bid ID
+      currentBidId = data.bid_id;
+
+      // Display metadata
+      document.getElementById('bidIdDisplay').textContent = data.bid_id || '-';
+      document.getElementById('promptUsed').textContent = data.prompt_version || '-';
+      document.getElementById('modelUsed').textContent = data.model_used || '-';
+      document.getElementById('langDetected').textContent = data.detected_language || '-';
+      document.getElementById('toneDetected').textContent = data.detected_tone || '-';
 
       // Display results
       document.getElementById('proposalText').textContent = data.proposal_text || '';
@@ -309,15 +638,19 @@
         demoNote.style.display = 'none';
       }
 
+      // Reset outcome buttons
+      document.querySelectorAll('.outcome-btn').forEach(btn => btn.classList.remove('selected'));
+
       resultSection.classList.add('visible');
 
     } catch (err) {
       showError(err.message);
     } finally {
       generateBtn.disabled = false;
+      compareBtn.disabled = false;
       loading.classList.remove('visible');
     }
-  });
+  }
 
   function showError(msg) {
     errorMsg.textContent = msg;
@@ -352,6 +685,40 @@
         btn.classList.remove('copied');
       }, 2000);
     });
+  }
+
+  async function markOutcome(btn, outcome) {
+    if (!currentBidId) {
+      showError('No bid to mark');
+      return;
+    }
+
+    const payload = {
+      outcome: outcome,
+      was_viewed: outcome === 'viewed' || outcome === 'engaged' || outcome === 'won' || outcome === 'high_rank',
+      was_engaged: outcome === 'engaged' || outcome === 'won',
+      was_won: outcome === 'won',
+      was_high_rank: outcome === 'high_rank',
+    };
+
+    try {
+      const response = await fetch(`/api/bids/${currentBidId}/outcome`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update outcome');
+      }
+
+      // Visual feedback
+      document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+    } catch (err) {
+      showError(err.message);
+    }
   }
 </script>
 {% endblock %}

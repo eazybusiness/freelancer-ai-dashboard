@@ -18,6 +18,29 @@ from generate_bids import (
 )
 from profiles import load_profiles, save_profiles
 
+# Manual bid generator with learning
+from manual_bid_generator import (
+    generate_bid as manual_generate_bid,
+    generate_multiple_versions,
+    mark_bid_outcome,
+    save_edited_bid,
+    get_stats as get_learning_stats,
+    PROJECT_TYPES,
+    LANGUAGES,
+    TONES,
+)
+from prompt_manager import (
+    get_prompt_versions,
+    set_active_prompt_version,
+    approve_prompt_version,
+)
+from bid_history import (
+    get_recent_bids,
+    get_bid,
+    get_winning_bids,
+    get_successful_bids,
+)
+
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 
@@ -494,11 +517,21 @@ async def update_profiles(payload: Dict[str, Any]) -> Dict[str, Any]:
 async def manual_bid_page(request: Request):
     """Page for manually pasting a project description and generating a bid."""
     profiles = load_profiles()
+    prompt_versions = get_prompt_versions()
+    recent_bids = get_recent_bids(limit=10)
+    stats = get_learning_stats()
+    
     return templates.TemplateResponse(
         "manual_bid.html",
         {
             "request": request,
             "profiles": profiles,
+            "prompt_versions": prompt_versions,
+            "project_types": PROJECT_TYPES,
+            "languages": LANGUAGES,
+            "tones": TONES,
+            "recent_bids": recent_bids,
+            "stats": stats,
             "active_page": "manual_bid",
         },
     )
@@ -506,57 +539,217 @@ async def manual_bid_page(request: Request):
 
 @app.post("/api/manual-bid")
 async def manual_bid_generate(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate a bid from a manually pasted project description."""
+    """Generate a bid from a manually pasted project description using the new learning system."""
     description = payload.get("description", "").strip()
     if not description:
         raise HTTPException(status_code=400, detail="Field 'description' is required")
 
     title = payload.get("title", "").strip() or "Untitled Project"
-    url = payload.get("url", "").strip() or ""
-    profile_key = payload.get("profile_key", "").strip() or "web"
-    budget_size = payload.get("budget_size", "unknown").strip()
+    url = payload.get("url", "").strip() or None
+    project_type = payload.get("project_type", "other").strip()
+    language = payload.get("language", "auto").strip()
+    tone = payload.get("tone", "auto").strip()
+    prompt_version = payload.get("prompt_version", "").strip() or None
+    model = payload.get("model", "").strip() or None
+    budget_min = payload.get("budget_min")
+    budget_max = payload.get("budget_max")
+    
+    # Convert budget values
+    if budget_min is not None:
+        try:
+            budget_min = float(budget_min)
+        except (ValueError, TypeError):
+            budget_min = None
+    if budget_max is not None:
+        try:
+            budget_max = float(budget_max)
+        except (ValueError, TypeError):
+            budget_max = None
 
-    # Build a minimal project dict for the bid generator
-    project: Dict[str, Any] = {
-        "title": title,
-        "description": description,
-        "seo_url": "",
-    }
-
-    # Build a minimal analysis dict (we skip phase 1 for manual bids)
-    analysis: Dict[str, Any] = {
-        "summary": description[:300] + "..." if len(description) > 300 else description,
-        "category": "other",
-        "rough_score": 70,
-        "automation_potential": 50,
-        "manual_work_notes": "",
-    }
-
-    profile = _build_profile(profile_key)
-
-    # Determine milestone count from budget size
-    size_to_count = {
-        "small": 2,
-        "medium": 3,
-        "large": 4,
-        "unknown": 3,
-    }
-    milestone_count = size_to_count.get(budget_size, 3)
-
-    bid = generate_bid_for_project(
-        project=project,
-        analysis=analysis,
-        profile=profile,
-        milestone_size=budget_size,
-        milestone_count=milestone_count,
+    result = manual_generate_bid(
+        project_title=title,
+        project_description=description,
+        project_type=project_type,
+        language=language,
+        tone=tone,
+        prompt_version=prompt_version,
+        model=model,
         project_url=url,
+        budget_min=budget_min,
+        budget_max=budget_max,
     )
 
     return {
         "ok": True,
+        "bid_id": result.get("bid_id"),
         "title": title,
-        "proposal_text": bid.get("proposal_text", ""),
-        "milestone_plan": bid.get("milestone_plan", {}),
-        "free_demo_offered": bid.get("free_demo_offered", False),
-        "free_demo_reason": bid.get("free_demo_reason", ""),
+        "proposal_text": result.get("bid_text", ""),
+        "milestone_plan": result.get("milestone_plan", {}),
+        "free_demo_offered": result.get("free_demo_offered", False),
+        "free_demo_reason": result.get("free_demo_reason", ""),
+        "detected_tone": result.get("detected_tone", ""),
+        "detected_language": result.get("detected_language", ""),
+        "prompt_version": result.get("prompt_version", ""),
+        "model_used": result.get("model_used", ""),
+        "identified_pain_point": result.get("identified_pain_point", ""),
     }
+
+
+@app.post("/api/manual-bid/compare")
+async def manual_bid_compare(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate bids using multiple prompt versions for comparison."""
+    description = payload.get("description", "").strip()
+    if not description:
+        raise HTTPException(status_code=400, detail="Field 'description' is required")
+    
+    title = payload.get("title", "").strip() or "Untitled Project"
+    prompt_versions = payload.get("prompt_versions", [])
+    
+    if not prompt_versions or not isinstance(prompt_versions, list):
+        raise HTTPException(status_code=400, detail="Field 'prompt_versions' must be a non-empty list")
+    
+    results = generate_multiple_versions(
+        project_title=title,
+        project_description=description,
+        prompt_versions=prompt_versions,
+        project_type=payload.get("project_type", "other"),
+        language=payload.get("language", "auto"),
+        tone=payload.get("tone", "auto"),
+        project_url=payload.get("url"),
+        budget_min=payload.get("budget_min"),
+        budget_max=payload.get("budget_max"),
+    )
+    
+    return {"ok": True, "results": results}
+
+
+# ----- Bid History & Learning API -----
+
+@app.get("/api/bids")
+async def api_get_bids(
+    limit: int = Query(default=20, le=100),
+    outcome: Optional[str] = Query(default=None),
+) -> Dict[str, Any]:
+    """Get recent bids, optionally filtered by outcome."""
+    if outcome:
+        from bid_history import get_bids_by_outcome
+        bids = get_bids_by_outcome(outcome, limit=limit)
+    else:
+        bids = get_recent_bids(limit=limit)
+    
+    return {"ok": True, "bids": bids}
+
+
+@app.get("/api/bids/{bid_id}")
+async def api_get_bid(bid_id: int) -> Dict[str, Any]:
+    """Get a single bid by ID."""
+    bid = get_bid(bid_id)
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    return {"ok": True, "bid": bid}
+
+
+@app.post("/api/bids/{bid_id}/outcome")
+async def api_update_bid_outcome(bid_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Update the outcome of a bid for learning."""
+    outcome = payload.get("outcome", "pending")
+    was_viewed = payload.get("was_viewed", False)
+    was_engaged = payload.get("was_engaged", False)
+    was_won = payload.get("was_won", False)
+    was_high_rank = payload.get("was_high_rank", False)
+    notes = payload.get("notes")
+    
+    success = mark_bid_outcome(
+        bid_id=bid_id,
+        outcome=outcome,
+        was_viewed=was_viewed,
+        was_engaged=was_engaged,
+        was_won=was_won,
+        was_high_rank=was_high_rank,
+        notes=notes,
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    
+    return {"ok": True}
+
+
+@app.post("/api/bids/{bid_id}/final")
+async def api_save_final_bid(bid_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Save the final edited version of a bid."""
+    final_text = payload.get("final_text", "").strip()
+    if not final_text:
+        raise HTTPException(status_code=400, detail="Field 'final_text' is required")
+    
+    feedback = payload.get("feedback")
+    
+    success = save_edited_bid(bid_id, final_text, feedback)
+    if not success:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    
+    return {"ok": True}
+
+
+@app.get("/api/bids/winning")
+async def api_get_winning_bids(limit: int = Query(default=20, le=50)) -> Dict[str, Any]:
+    """Get winning bids for learning reference."""
+    bids = get_winning_bids(limit=limit)
+    return {"ok": True, "bids": bids}
+
+
+@app.get("/api/learning-stats")
+async def api_get_learning_stats() -> Dict[str, Any]:
+    """Get learning statistics."""
+    stats = get_learning_stats()
+    return {"ok": True, "stats": stats}
+
+
+# ----- Prompt Version Management API -----
+
+@app.get("/api/prompt-versions")
+async def api_get_prompt_versions() -> Dict[str, Any]:
+    """Get all prompt versions with their stats."""
+    versions = get_prompt_versions()
+    return {"ok": True, "versions": versions}
+
+
+@app.post("/api/prompt-versions/{version_key}/activate")
+async def api_activate_prompt_version(version_key: str) -> Dict[str, Any]:
+    """Set a prompt version as active."""
+    success = set_active_prompt_version(version_key)
+    if not success:
+        raise HTTPException(status_code=404, detail="Prompt version not found")
+    return {"ok": True}
+
+
+@app.post("/api/prompt-versions/{version_key}/approve")
+async def api_approve_prompt_version(version_key: str) -> Dict[str, Any]:
+    """Mark a prompt version as approved."""
+    success = approve_prompt_version(version_key)
+    if not success:
+        raise HTTPException(status_code=404, detail="Prompt version not found")
+    return {"ok": True}
+
+
+# ----- Bid History Page -----
+
+@app.get("/bid-history", response_class=HTMLResponse)
+async def bid_history_page(request: Request):
+    """Page for viewing and managing bid history."""
+    recent_bids = get_recent_bids(limit=50)
+    winning_bids = get_winning_bids(limit=10)
+    stats = get_learning_stats()
+    prompt_versions = get_prompt_versions()
+    
+    return templates.TemplateResponse(
+        "bid_history.html",
+        {
+            "request": request,
+            "recent_bids": recent_bids,
+            "winning_bids": winning_bids,
+            "stats": stats,
+            "prompt_versions": prompt_versions,
+            "active_page": "bid_history",
+        },
+    )

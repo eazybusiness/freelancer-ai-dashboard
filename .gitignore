@@ -23,6 +23,10 @@ data/seen_projects.json
 data/*shortlist.json
 data/analysis_*.json
 data/bids_*.json
+data/bid_history.db
 
 # Local screenshots (keep UI screenshots private by default)
 Screenshot*.png
+
+# Local-only personalized profile overrides
+config/profiles.private.json
