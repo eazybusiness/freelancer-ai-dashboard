@@ -691,10 +691,47 @@ async def api_save_final_bid(bid_id: int, payload: Dict[str, Any]) -> Dict[str, 
     return {"ok": True}
 
 
+@app.post("/api/bids/{bid_id}/rate")
+async def api_rate_bid(bid_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Rate a bid for learning.
+    
+    rating_type: 'bad' (-5), 'regular' (0), 'good' (+5), 'winning' (+10 bonus)
+    """
+    from bid_history import rate_bid
+    
+    rating_type = payload.get("rating_type", "").strip().lower()
+    if rating_type not in ("bad", "regular", "good", "winning"):
+        raise HTTPException(status_code=400, detail="Invalid rating_type. Use: bad, regular, good, winning")
+    
+    new_rating = rate_bid(bid_id, rating_type)
+    if new_rating is None:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    
+    return {"ok": True, "new_rating": new_rating}
+
+
 @app.get("/api/bids/winning")
 async def api_get_winning_bids(limit: int = Query(default=20, le=50)) -> Dict[str, Any]:
     """Get winning bids for learning reference."""
     bids = get_winning_bids(limit=limit)
+    return {"ok": True, "bids": bids}
+
+
+@app.get("/api/bids/high-rated")
+async def api_get_high_rated_bids(
+    min_rating: int = Query(default=5),
+    project_type: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, le=50)
+) -> Dict[str, Any]:
+    """Get high-rated bids for learning context."""
+    from bid_history import get_high_rated_bids, get_high_rated_by_type
+    
+    if project_type:
+        bids = get_high_rated_by_type(project_type, min_rating, limit)
+    else:
+        bids = get_high_rated_bids(min_rating, limit)
+    
     return {"ok": True, "bids": bids}
 
 

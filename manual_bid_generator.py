@@ -28,6 +28,8 @@ from bid_history import (
     update_bid_outcome,
     save_final_bid,
     get_learning_stats,
+    get_high_rated_bids,
+    get_high_rated_by_type,
 )
 from prompt_manager import (
     get_prompt_versions,
@@ -401,25 +403,47 @@ def _language_name(code: str) -> str:
     return names.get(code, "English")
 
 
-def _get_similar_bids_context(project_type: str, limit: int = 2) -> str:
-    """Get context from similar successful past bids."""
-    bids = search_bids_by_type(project_type, limit=limit)
+def _get_similar_bids_context(project_type: str, limit: int = 3) -> str:
+    """
+    Get context from similar high-rated past bids for learning.
     
-    # Filter to only engaged or won
-    successful = [b for b in bids if b.get("was_engaged") or b.get("was_won")]
+    The system learns from ratings:
+    - good (+5): Bid was well-written, client responded positively
+    - winning (+10 bonus): Client accepted the bid
+    - bad (-5): Bid didn't work, avoid this approach
     
-    if not successful:
+    High-rated bids (rating >= 5) are used as positive examples.
+    """
+    # First try to get high-rated bids for this project type
+    bids = get_high_rated_by_type(project_type, min_rating=5, limit=limit)
+    
+    # If no high-rated for this type, fall back to general high-rated bids
+    if not bids:
+        bids = get_high_rated_bids(min_rating=5, limit=limit)
+    
+    # If still nothing, fall back to any successful bids
+    if not bids:
+        all_bids = search_bids_by_type(project_type, limit=limit * 2)
+        bids = [b for b in all_bids if b.get("was_engaged") or b.get("was_won")]
+    
+    if not bids:
         return ""
     
-    parts = []
-    for bid in successful[:2]:
-        status = "WON" if bid.get("was_won") else "ENGAGED"
+    parts = ["--- HIGH-RATED BIDS FOR REFERENCE ---"]
+    for bid in bids[:3]:
+        rating = bid.get("rating", 0)
+        status = f"Rating: {rating:+d}"
+        if bid.get("was_won"):
+            status += " | WON"
+        elif bid.get("was_engaged"):
+            status += " | ENGAGED"
+        
         final_text = bid.get("final_bid_text") or bid.get("bid_text", "")
         if final_text:
-            parts.append(f"[{status}] {bid.get('project_title', 'Unknown')}:")
-            parts.append(final_text[:500] + "..." if len(final_text) > 500 else final_text)
-            parts.append("")
+            parts.append(f"\n[{status}] {bid.get('project_title', 'Unknown')}:")
+            parts.append(final_text[:600] + "..." if len(final_text) > 600 else final_text)
     
+    parts.append("\n--- END REFERENCE ---")
     return "\n".join(parts)
 
 

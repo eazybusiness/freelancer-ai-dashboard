@@ -68,7 +68,10 @@ def _ensure_tables(conn: sqlite3.Connection) -> None:
             -- Learning data
             user_edits TEXT,
             final_bid_text TEXT,
-            feedback_notes TEXT
+            feedback_notes TEXT,
+            
+            -- Rating system: regular=0, good=+5, bad=-5, winning=+10 bonus
+            rating INTEGER DEFAULT 0
         );
         
         CREATE TABLE IF NOT EXISTS prompt_versions (
@@ -92,8 +95,16 @@ def _ensure_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_bids_outcome ON bids(outcome);
         CREATE INDEX IF NOT EXISTS idx_bids_prompt_version ON bids(prompt_version);
         CREATE INDEX IF NOT EXISTS idx_bids_created_at ON bids(created_at);
+        CREATE INDEX IF NOT EXISTS idx_bids_rating ON bids(rating);
     """)
     conn.commit()
+    
+    # Migration: Add rating column if it doesn't exist
+    try:
+        conn.execute("ALTER TABLE bids ADD COLUMN rating INTEGER DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
 
 # ----- Bid CRUD -----
@@ -315,6 +326,93 @@ def save_final_bid(bid_id: int, final_text: str, feedback: Optional[str] = None)
     return True
 
 
+# ----- Rating System -----
+# Rating values: regular=0, good=+5, bad=-5, winning bonus=+10
+
+RATING_VALUES = {
+    "bad": -5,
+    "regular": 0,
+    "good": 5,
+    "winning": 10,  # Bonus added on top of current rating
+}
+
+
+def rate_bid(bid_id: int, rating_type: str) -> Optional[int]:
+    """
+    Rate a bid. Returns the new total rating.
+    
+    rating_type: 'bad' (-5), 'regular' (0), 'good' (+5), 'winning' (+10 bonus)
+    """
+    if rating_type not in RATING_VALUES:
+        return None
+    
+    conn = _get_connection()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    row = conn.execute("SELECT rating, was_won, prompt_version FROM bids WHERE id = ?", (bid_id,)).fetchone()
+    if row is None:
+        conn.close()
+        return None
+    
+    current_rating = row["rating"] or 0
+    prompt_version = row["prompt_version"]
+    was_already_won = row["was_won"]
+    
+    if rating_type == "winning":
+        # Add winning bonus to current rating
+        new_rating = current_rating + RATING_VALUES["winning"]
+        # Also mark as won
+        conn.execute("""
+            UPDATE bids SET rating = ?, was_won = 1, updated_at = ? WHERE id = ?
+        """, (new_rating, now, bid_id))
+        
+        # Update prompt stats if not already won
+        if not was_already_won:
+            _increment_prompt_stat(prompt_version, "won_bids")
+            _recalculate_prompt_success_rate(prompt_version)
+    else:
+        # Set absolute rating
+        new_rating = RATING_VALUES[rating_type]
+        conn.execute("""
+            UPDATE bids SET rating = ?, updated_at = ? WHERE id = ?
+        """, (new_rating, now, bid_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return new_rating
+
+
+def get_high_rated_bids(min_rating: int = 5, limit: int = 20) -> List[Dict[str, Any]]:
+    """Get bids with rating >= min_rating for learning context."""
+    conn = _get_connection()
+    rows = conn.execute(
+        """SELECT * FROM bids 
+           WHERE rating >= ? 
+           ORDER BY rating DESC, was_won DESC, created_at DESC 
+           LIMIT ?""",
+        (min_rating, limit)
+    ).fetchall()
+    conn.close()
+    
+    return [_row_to_dict(row) for row in rows]
+
+
+def get_high_rated_by_type(project_type: str, min_rating: int = 5, limit: int = 10) -> List[Dict[str, Any]]:
+    """Get high-rated bids for a specific project type - best for learning similar projects."""
+    conn = _get_connection()
+    rows = conn.execute(
+        """SELECT * FROM bids 
+           WHERE project_type = ? AND rating >= ?
+           ORDER BY rating DESC, was_won DESC, created_at DESC 
+           LIMIT ?""",
+        (project_type, min_rating, limit)
+    ).fetchall()
+    conn.close()
+    
+    return [_row_to_dict(row) for row in rows]
+
+
 # ----- Prompt Version Management -----
 
 def register_prompt_version(
@@ -432,10 +530,16 @@ def get_learning_stats() -> Dict[str, Any]:
     viewed = conn.execute("SELECT COUNT(*) as c FROM bids WHERE was_viewed = 1").fetchone()["c"]
     pending = conn.execute("SELECT COUNT(*) as c FROM bids WHERE outcome = 'pending'").fetchone()["c"]
     
+    # Rating stats
+    good_rated = conn.execute("SELECT COUNT(*) as c FROM bids WHERE rating >= 5").fetchone()["c"]
+    bad_rated = conn.execute("SELECT COUNT(*) as c FROM bids WHERE rating <= -5").fetchone()["c"]
+    avg_rating = conn.execute("SELECT AVG(rating) as avg FROM bids WHERE rating != 0").fetchone()["avg"] or 0
+    
     # By project type
     by_type = conn.execute("""
         SELECT project_type, COUNT(*) as total,
-               SUM(was_won) as won, SUM(was_engaged) as engaged, SUM(was_viewed) as viewed
+               SUM(was_won) as won, SUM(was_engaged) as engaged, SUM(was_viewed) as viewed,
+               AVG(rating) as avg_rating
         FROM bids
         WHERE project_type IS NOT NULL
         GROUP BY project_type
@@ -451,6 +555,9 @@ def get_learning_stats() -> Dict[str, Any]:
         "pending": pending,
         "win_rate": (won / total * 100) if total > 0 else 0,
         "engagement_rate": (engaged / total * 100) if total > 0 else 0,
+        "good_rated": good_rated,
+        "bad_rated": bad_rated,
+        "avg_rating": round(avg_rating, 1),
         "by_type": [dict(row) for row in by_type],
     }
 

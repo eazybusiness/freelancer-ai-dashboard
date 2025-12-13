@@ -193,15 +193,16 @@
     margin: 0 0 0.5rem 0;
   }
   .detail-text {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: #1e293b;
+    border: 1px solid #334155;
     border-radius: 6px;
     padding: 0.75rem;
     font-size: 0.85rem;
-    line-height: 1.5;
+    line-height: 1.6;
     white-space: pre-wrap;
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
+    color: #e5e7eb;
   }
   .outcome-buttons {
     display: flex;
@@ -272,6 +273,91 @@
   }
   .copy-btn:hover {
     background: #cbd5e1;
+  }
+  .rating-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  .rating-section h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0 0 0.5rem 0;
+  }
+  .rating-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .rating-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .rating-btn:hover {
+    transform: translateY(-1px);
+  }
+  .rating-btn.bad {
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+  .rating-btn.bad:hover, .rating-btn.bad.selected {
+    background: #dc2626;
+    color: white;
+    border-color: #dc2626;
+  }
+  .rating-btn.regular {
+    border-color: #e2e8f0;
+    color: #64748b;
+  }
+  .rating-btn.regular:hover, .rating-btn.regular.selected {
+    background: #64748b;
+    color: white;
+    border-color: #64748b;
+  }
+  .rating-btn.good {
+    border-color: #bbf7d0;
+    color: #16a34a;
+  }
+  .rating-btn.good:hover, .rating-btn.good.selected {
+    background: #16a34a;
+    color: white;
+    border-color: #16a34a;
+  }
+  .rating-btn.winning {
+    border-color: #fde047;
+    color: #ca8a04;
+  }
+  .rating-btn.winning:hover, .rating-btn.winning.selected {
+    background: #ca8a04;
+    color: white;
+    border-color: #ca8a04;
+  }
+  .current-rating {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-left: 0.5rem;
+  }
+  .rating-positive {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .rating-negative {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+  .rating-neutral {
+    background: #f1f5f9;
+    color: #64748b;
   }
 </style>
 
@@ -372,8 +458,21 @@
               <button class="outcome-btn" data-outcome="viewed" onclick="updateOutcome('viewed', this)">Viewed</button>
               <button class="outcome-btn" data-outcome="engaged" onclick="updateOutcome('engaged', this)">Engaged</button>
               <button class="outcome-btn" data-outcome="high_rank" onclick="updateOutcome('high_rank', this)">High Rank</button>
-              <button class="outcome-btn" data-outcome="won" onclick="updateOutcome('won', this)">Won!</button>
               <button class="outcome-btn" data-outcome="rejected" onclick="updateOutcome('rejected', this)">No Response</button>
+            </div>
+          </div>
+
+          <div class="rating-section">
+            <h4>
+              Rate This Bid
+              <span class="current-rating rating-neutral" id="currentRating">0</span>
+            </h4>
+            <p style="font-size: 0.75rem; color: #64748b; margin: 0 0 0.5rem 0;">Rate the quality to help the system learn</p>
+            <div class="rating-buttons">
+              <button class="rating-btn bad" onclick="rateBid('bad', this)">👎 Bad (-5)</button>
+              <button class="rating-btn regular" onclick="rateBid('regular', this)">😐 Regular (0)</button>
+              <button class="rating-btn good" onclick="rateBid('good', this)">👍 Good (+5)</button>
+              <button class="rating-btn winning" onclick="rateBid('winning', this)">🏆 Won! (+10)</button>
             </div>
           </div>
         </div>
@@ -419,7 +518,8 @@
     was_viewed: {{ 'true' if bid.was_viewed else 'false' }},
     was_engaged: {{ 'true' if bid.was_engaged else 'false' }},
     was_won: {{ 'true' if bid.was_won else 'false' }},
-    was_high_rank: {{ 'true' if bid.was_high_rank else 'false' }}
+    was_high_rank: {{ 'true' if bid.was_high_rank else 'false' }},
+    rating: {{ bid.rating or 0 }}
   };
   {% endfor %}
 
@@ -452,6 +552,34 @@
         (outcome === 'rejected' && bid.outcome === 'rejected');
       btn.classList.toggle('selected', isSelected);
     });
+
+    // Update rating display
+    updateRatingDisplay(bid.rating);
+    
+    // Update rating button selection
+    document.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
+    if (bid.rating >= 10) {
+      document.querySelector('.rating-btn.winning').classList.add('selected');
+    } else if (bid.rating >= 5) {
+      document.querySelector('.rating-btn.good').classList.add('selected');
+    } else if (bid.rating <= -5) {
+      document.querySelector('.rating-btn.bad').classList.add('selected');
+    } else if (bid.rating === 0) {
+      document.querySelector('.rating-btn.regular').classList.add('selected');
+    }
+  }
+
+  function updateRatingDisplay(rating) {
+    const el = document.getElementById('currentRating');
+    el.textContent = rating >= 0 ? '+' + rating : rating;
+    el.className = 'current-rating';
+    if (rating > 0) {
+      el.classList.add('rating-positive');
+    } else if (rating < 0) {
+      el.classList.add('rating-negative');
+    } else {
+      el.classList.add('rating-neutral');
+    }
   }
 
   function filterBids(filter, btn) {
@@ -549,6 +677,51 @@
       btn.textContent = 'Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
     });
+  }
+
+  async function rateBid(ratingType, btn) {
+    if (!selectedBidId) {
+      alert('Select a bid first');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/bids/${selectedBidId}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating_type: ratingType })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || 'Failed to rate');
+      }
+
+      // Update local data
+      bidsData[selectedBidId].rating = result.new_rating;
+      
+      // If winning, also mark as won
+      if (ratingType === 'winning') {
+        bidsData[selectedBidId].was_won = true;
+        // Update card status
+        const card = document.querySelector(`.bid-card[data-bid-id="${selectedBidId}"]`);
+        if (card) {
+          const statusSpan = card.querySelector('.bid-status');
+          statusSpan.className = 'bid-status status-won';
+          statusSpan.textContent = 'Won';
+        }
+      }
+
+      // Update rating display
+      updateRatingDisplay(result.new_rating);
+
+      // Update button selection
+      document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
   }
 </script>
 {% endblock %}
