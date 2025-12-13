@@ -403,7 +403,7 @@ def _language_name(code: str) -> str:
     return names.get(code, "English")
 
 
-def _get_similar_bids_context(project_type: str, limit: int = 3) -> str:
+def _get_similar_bids_context(project_type: str, limit: int = 2) -> str:
     """
     Get context from similar high-rated past bids for learning.
     
@@ -430,7 +430,7 @@ def _get_similar_bids_context(project_type: str, limit: int = 3) -> str:
         return ""
     
     parts = ["--- HIGH-RATED BIDS FOR REFERENCE ---"]
-    for bid in bids[:3]:
+    for bid in bids[:2]:  # Reduced from 3 to 2
         rating = bid.get("rating", 0)
         status = f"Rating: {rating:+d}"
         if bid.get("was_won"):
@@ -441,7 +441,8 @@ def _get_similar_bids_context(project_type: str, limit: int = 3) -> str:
         final_text = bid.get("final_bid_text") or bid.get("bid_text", "")
         if final_text:
             parts.append(f"\n[{status}] {bid.get('project_title', 'Unknown')}:")
-            parts.append(final_text[:600] + "..." if len(final_text) > 600 else final_text)
+            # Reduced from 600 to 300 characters
+            parts.append(final_text[:300] + "..." if len(final_text) > 300 else final_text)
     
     parts.append("\n--- END REFERENCE ---")
     return "\n".join(parts)
