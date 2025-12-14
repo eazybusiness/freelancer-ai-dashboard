@@ -203,6 +203,7 @@ def generate_bid(
     budget_min: Optional[float] = None,
     budget_max: Optional[float] = None,
     include_similar_bids: bool = True,
+    additional_context: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Generate a bid for a project.
@@ -220,6 +221,7 @@ def generate_bid(
         budget_min: Minimum budget (optional)
         budget_max: Maximum budget (optional)
         include_similar_bids: Whether to include similar past bids for context
+        additional_context: Personal details or special context (optional)
     
     Returns:
         Dict with bid_text, milestone_plan, metadata, and bid_id
@@ -254,6 +256,11 @@ def generate_bid(
     language_override = "" if language == "auto" else f"Write this proposal in {_language_name(language)}."
     tone_override = "" if tone == "auto" else f"Use a {tone} tone throughout."
     
+    # Additional context from user
+    additional_context_text = ""
+    if additional_context and additional_context.strip():
+        additional_context_text = f"\n\n## Additional Personal Context\n{additional_context.strip()}\n"
+    
     # Build the prompt
     prompt = (
         prompt_content
@@ -274,6 +281,10 @@ def generate_bid(
         .replace("{LANGUAGE_OVERRIDE}", language_override)
         .replace("{TONE_OVERRIDE}", tone_override)
     )
+    
+    # Add additional context if provided
+    if additional_context_text:
+        prompt += additional_context_text
     
     # Add similar successful bids for context
     if include_similar_bids:

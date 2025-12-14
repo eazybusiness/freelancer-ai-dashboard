@@ -553,6 +553,7 @@ async def manual_bid_generate(payload: Dict[str, Any]) -> Dict[str, Any]:
     model = payload.get("model", "").strip() or None
     budget_min = payload.get("budget_min")
     budget_max = payload.get("budget_max")
+    additional_context = payload.get("additional_context", "").strip() or None
     
     # Convert budget values
     if budget_min is not None:
@@ -577,6 +578,7 @@ async def manual_bid_generate(payload: Dict[str, Any]) -> Dict[str, Any]:
         project_url=url,
         budget_min=budget_min,
         budget_max=budget_max,
+        additional_context=additional_context,
     )
 
     return {

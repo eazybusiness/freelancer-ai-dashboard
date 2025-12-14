@@ -272,14 +272,16 @@ def save_uploaded_bid(
     cursor = conn.execute("""
         INSERT INTO bids (
             created_at, updated_at,
+            project_id,  -- NULL for uploaded bids
             project_title, project_url, project_description, project_type,
             bid_text,
             prompt_version,  -- Use 'uploaded' as version
             outcome, rating, was_won,
             is_uploaded, upload_source, upload_notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         now, now,
+        None,  # project_id
         project_title, project_url, project_description, project_type,
         bid_text,
         'uploaded',

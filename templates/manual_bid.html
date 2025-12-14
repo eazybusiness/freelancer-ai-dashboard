@@ -396,6 +396,14 @@
           <textarea id="projectDescription" placeholder="Paste the full project description here..." required></textarea>
         </div>
 
+        <div class="form-group">
+          <label for="additionalContext">Additional Context (Optional)</label>
+          <textarea id="additionalContext" placeholder="Personal details or special context not in profile (e.g., 'I am a bodybuilder myself' for fitness app, 'I have experience with GDPR compliance' for data projects, etc.)"></textarea>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem;">
+            Include personal experience, specific knowledge, or unique qualifications relevant to this project
+          </div>
+        </div>
+
         <div class="form-row" style="margin-bottom: 1rem;">
           <div class="form-group">
             <label for="projectType">Project Type</label>
@@ -588,6 +596,7 @@
       prompt_version: selectedPrompt ? selectedPrompt.value : '',
       budget_min: document.getElementById('budgetMin').value || null,
       budget_max: document.getElementById('budgetMax').value || null,
+      additional_context: document.getElementById('additionalContext').value.trim() || '',
     };
 
     try {
