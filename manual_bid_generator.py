@@ -30,6 +30,7 @@ from bid_history import (
     get_learning_stats,
     get_high_rated_bids,
     get_high_rated_by_type,
+    get_uploaded_bids,
 )
 from prompt_manager import (
     get_prompt_versions,
@@ -407,21 +408,35 @@ def _get_similar_bids_context(project_type: str, limit: int = 2) -> str:
     """
     Get context from similar high-rated past bids for learning.
     
+    Priority order:
+    1. Uploaded bids (my wins, other freelancer wins, liked bids)
+    2. High-rated bids from same project type
+    3. General high-rated bids
+    4. Any successful bids
+    
     The system learns from ratings:
     - good (+5): Bid was well-written, client responded positively
     - winning (+10 bonus): Client accepted the bid
     - bad (-5): Bid didn't work, avoid this approach
-    
-    High-rated bids (rating >= 5) are used as positive examples.
+    - uploaded: +15 (my win) or +20 (other freelancer) for learning priority
     """
-    # First try to get high-rated bids for this project type
-    bids = get_high_rated_by_type(project_type, min_rating=5, limit=limit)
+    # First priority: Uploaded bids of same type
+    bids = get_uploaded_bids(limit=limit)
+    bids = [b for b in bids if b.get("project_type") == project_type]
     
-    # If no high-rated for this type, fall back to general high-rated bids
+    # If no uploaded of this type, get any uploaded bids
+    if not bids:
+        bids = get_uploaded_bids(limit=limit)
+    
+    # Second priority: High-rated bids for this project type
+    if not bids:
+        bids = get_high_rated_by_type(project_type, min_rating=5, limit=limit)
+    
+    # Third priority: General high-rated bids
     if not bids:
         bids = get_high_rated_bids(min_rating=5, limit=limit)
     
-    # If still nothing, fall back to any successful bids
+    # Fourth priority: Any successful bids
     if not bids:
         all_bids = search_bids_by_type(project_type, limit=limit * 2)
         bids = [b for b in all_bids if b.get("was_engaged") or b.get("was_won")]
@@ -430,10 +445,20 @@ def _get_similar_bids_context(project_type: str, limit: int = 2) -> str:
         return ""
     
     parts = ["--- HIGH-RATED BIDS FOR REFERENCE ---"]
-    for bid in bids[:2]:  # Reduced from 3 to 2
+    for bid in bids[:2]:
         rating = bid.get("rating", 0)
         status = f"Rating: {rating:+d}"
-        if bid.get("was_won"):
+        
+        # Add special indicators for uploaded bids
+        if bid.get("is_uploaded"):
+            source = bid.get("upload_source", "unknown")
+            if source == "my_win":
+                status += " | MY WIN"
+            elif source == "other_freelancer":
+                status += " | COMPETITOR WIN"
+            else:
+                status += " | LIKED"
+        elif bid.get("was_won"):
             status += " | WON"
         elif bid.get("was_engaged"):
             status += " | ENGAGED"
@@ -441,7 +466,6 @@ def _get_similar_bids_context(project_type: str, limit: int = 2) -> str:
         final_text = bid.get("final_bid_text") or bid.get("bid_text", "")
         if final_text:
             parts.append(f"\n[{status}] {bid.get('project_title', 'Unknown')}:")
-            # Reduced from 600 to 300 characters
             parts.append(final_text[:300] + "..." if len(final_text) > 300 else final_text)
     
     parts.append("\n--- END REFERENCE ---")

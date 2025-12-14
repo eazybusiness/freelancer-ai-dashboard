@@ -742,6 +742,61 @@ async def api_get_learning_stats() -> Dict[str, Any]:
     return {"ok": True, "stats": stats}
 
 
+@app.post("/api/bids/upload")
+async def api_upload_bid(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Upload a winning bid for learning.
+    
+    Required fields:
+    - project_title
+    - bid_text
+    - project_type
+    - upload_source: 'my_win', 'other_freelancer', 'liked'
+    
+    Optional fields:
+    - project_url
+    - project_description
+    - upload_notes
+    """
+    from bid_history import save_uploaded_bid
+    
+    # Validate required fields
+    required = ['project_title', 'bid_text', 'project_type', 'upload_source']
+    for field in required:
+        if not payload.get(field, '').strip():
+            raise HTTPException(status_code=400, detail=f"Field '{field}' is required")
+    
+    # Validate upload_source
+    valid_sources = ['my_win', 'other_freelancer', 'liked']
+    if payload['upload_source'] not in valid_sources:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"upload_source must be one of: {', '.join(valid_sources)}"
+        )
+    
+    # Save the uploaded bid
+    bid_id = save_uploaded_bid(
+        project_title=payload['project_title'].strip(),
+        bid_text=payload['bid_text'].strip(),
+        project_type=payload['project_type'].strip(),
+        upload_source=payload['upload_source'],
+        project_url=payload.get('project_url', '').strip() or None,
+        project_description=payload.get('project_description', '').strip() or None,
+        upload_notes=payload.get('upload_notes', '').strip() or None,
+    )
+    
+    return {"ok": True, "bid_id": bid_id}
+
+
+@app.get("/api/bids/uploaded")
+async def api_get_uploaded_bids(source: Optional[str] = None, limit: int = Query(default=20, le=50)) -> Dict[str, Any]:
+    """Get uploaded bids for viewing."""
+    from bid_history import get_uploaded_bids
+    
+    bids = get_uploaded_bids(source=source, limit=limit)
+    return {"ok": True, "bids": bids}
+
+
 # ----- Prompt Version Management API -----
 
 @app.get("/api/prompt-versions")
@@ -873,6 +928,25 @@ async def prompt_editor_page(request: Request):
             "request": request,
             "prompt_versions": prompt_versions,
             "active_page": "prompt_editor",
+        },
+    )
+
+
+# ----- Upload Bid Page -----
+
+@app.get("/upload-bid", response_class=HTMLResponse)
+async def upload_bid_page(request: Request):
+    """Page for uploading winning bids for learning."""
+    from bid_history import get_uploaded_bids
+    
+    uploaded_bids = get_uploaded_bids(limit=20)
+    
+    return templates.TemplateResponse(
+        "upload_bid.html",
+        {
+            "request": request,
+            "uploaded_bids": uploaded_bids,
+            "active_page": "upload_bid",
         },
     )
 

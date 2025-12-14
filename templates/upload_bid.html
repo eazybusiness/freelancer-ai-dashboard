@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Winning Bid{% endblock %}
+
+{% block content %}
+<style>
+  .upload-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  .upload-form {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  .form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #374151;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+  .form-textarea {
+    min-height: 150px;
+    resize: vertical;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+  }
+  .btn-submit {
+    background: #16a34a;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-submit:hover {
+    background: #15803d;
+  }
+  .btn-reset {
+    background: #6b7280;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .uploaded-list {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .uploaded-item {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .uploaded-item:last-child {
+    border-bottom: none;
+  }
+  .source-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+  }
+  .source-my-win {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .source-other {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+  .source-liked {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+</style>
+
+<div class="upload-container">
+  <div class="page-header">
+    <h2>Upload Winning Bid</h2>
+    <a href="/bid-history" style="color: #2563eb;">← Back to History</a>
+  </div>
+
+  <div class="upload-form">
+    <h3 style="margin-top: 0;">Add a Winning Bid for Learning</h3>
+    <p style="color: #64748b; margin-bottom: 1.5rem;">
+      Upload bids that won or that you particularly like. The system will learn from them to generate better bids.
+    </p>
+
+    <form id="uploadForm">
+      <div class="form-group">
+        <label class="form-label">Project Title *</label>
+        <input type="text" name="project_title" class="form-input" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Project Type *</label>
+          <select name="project_type" class="form-select" required>
+            <option value="">Select type...</option>
+            <option value="web_app">Web App</option>
+            <option value="mobile_app">Mobile App</option>
+            <option value="api_backend">API/Backend</option>
+            <option value="ecommerce">E-commerce</option>
+            <option value="wordpress">WordPress</option>
+            <option value="shopify">Shopify</option>
+            <option value="odoo_erp">Odoo ERP</option>
+            <option value="scraping">Web Scraping</option>
+            <option value="automation">Automation</option>
+            <option value="data_analysis">Data Analysis</option>
+            <option value="ai_ml">AI/ML</option>
+            <option value="consulting">Consulting</option>
+            <option value="bug_fix">Bug Fix</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Source *</label>
+          <select name="upload_source" class="form-select" required>
+            <option value="">Select source...</option>
+            <option value="my_win">My Winning Bid</option>
+            <option value="other_freelancer">Competitor's Winning Bid</option>
+            <option value="liked">Bid I Particularly Like</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Bid Text *</label>
+        <textarea name="bid_text" class="form-textarea" required 
+                  placeholder="Paste the complete bid text here..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Project Description (Optional)</label>
+        <textarea name="project_description" class="form-textarea" rows="3"
+                  placeholder="Brief description of the project requirements..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Project URL (Optional)</label>
+        <input type="url" name="project_url" class="form-input" 
+               placeholder="https://...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes (Optional)</label>
+        <textarea name="upload_notes" class="form-textarea" rows="2"
+                  placeholder="Why did this bid work? What made it special?"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="reset" class="btn-reset">Clear</button>
+        <button type="submit" class="btn-submit">Upload Bid</button>
+      </div>
+    </form>
+  </div>
+
+  {% if uploaded_bids %}
+  <div class="uploaded-list">
+    <h3>Recently Uploaded Bids</h3>
+    {% for bid in uploaded_bids %}
+    <div class="uploaded-item">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div>
+          <strong>{{ bid.project_title }}</strong>
+          <span class="source-badge 
+            {% if bid.upload_source == 'my_win' %}source-my-win
+            {% elif bid.upload_source == 'other_freelancer' %}source-other
+            {% else %}source-liked{% endif %}">
+            {% if bid.upload_source == 'my_win' %}My Win
+            {% elif bid.upload_source == 'other_freelancer' %}Competitor
+            {% else %}Liked{% endif %}
+          </span>
+          <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">
+            {{ bid.project_type }} · {{ bid.created_at[:10] }}
+          </div>
+        </div>
+        <div style="font-size: 0.85rem; color: #64748b;">
+          Rating: +{{ bid.rating }}
+        </div>
+      </div>
+      {% if bid.upload_notes %}
+      <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #4b5563;">
+        <strong>Notes:</strong> {{ bid.upload_notes }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+      const response = await fetch('/api/bids/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.detail || 'Upload failed');
+      }
+      
+      // Success - reload page to show new upload
+      alert('Bid uploaded successfully!');
+      window.location.reload();
+      
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  });
+</script>
+{% endblock %}

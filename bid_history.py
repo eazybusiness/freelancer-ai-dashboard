@@ -71,7 +71,12 @@ def _ensure_tables(conn: sqlite3.Connection) -> None:
             feedback_notes TEXT,
             
             -- Rating system: regular=0, good=+5, bad=-5, winning=+10 bonus
-            rating INTEGER DEFAULT 0
+            rating INTEGER DEFAULT 0,
+            
+            -- Upload flags
+            is_uploaded INTEGER DEFAULT 0,
+            upload_source TEXT,  -- 'my_win', 'other_freelancer', 'liked'
+            upload_notes TEXT
         );
         
         CREATE TABLE IF NOT EXISTS prompt_versions (
@@ -105,6 +110,15 @@ def _ensure_tables(conn: sqlite3.Connection) -> None:
         conn.commit()
     except sqlite3.OperationalError:
         pass  # Column already exists
+    
+    # Migration: Add upload columns if they don't exist
+    try:
+        conn.execute("ALTER TABLE bids ADD COLUMN is_uploaded INTEGER DEFAULT 0")
+        conn.execute("ALTER TABLE bids ADD COLUMN upload_source TEXT")
+        conn.execute("ALTER TABLE bids ADD COLUMN upload_notes TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # Columns already exist
 
 
 # ----- Bid CRUD -----
@@ -230,6 +244,78 @@ def search_bids_by_type(project_type: str, limit: int = 20) -> List[Dict[str, An
     ).fetchall()
     conn.close()
     
+    return [_row_to_dict(row) for row in rows]
+
+
+def save_uploaded_bid(
+    project_title: str,
+    bid_text: str,
+    project_type: str,
+    upload_source: str,
+    upload_notes: Optional[str] = None,
+    project_url: Optional[str] = None,
+    project_description: Optional[str] = None,
+) -> int:
+    """
+    Save an uploaded bid for learning.
+    
+    upload_source: 'my_win', 'other_freelancer', 'liked'
+    """
+    conn = _get_connection()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Auto-rate uploaded bids higher for learning priority
+    rating = 15  # Higher than regular wins
+    if upload_source == 'other_freelancer':
+        rating = 20  # Even higher to learn what beats us
+    
+    cursor = conn.execute("""
+        INSERT INTO bids (
+            created_at, updated_at,
+            project_title, project_url, project_description, project_type,
+            bid_text,
+            prompt_version,  -- Use 'uploaded' as version
+            outcome, rating, was_won,
+            is_uploaded, upload_source, upload_notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        now, now,
+        project_title, project_url, project_description, project_type,
+        bid_text,
+        'uploaded',
+        'won', rating, 1,  # Mark as won
+        1, upload_source, upload_notes
+    ))
+    
+    bid_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return bid_id
+
+
+def get_uploaded_bids(source: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    """Get uploaded bids, optionally filtered by source."""
+    conn = _get_connection()
+    
+    if source:
+        rows = conn.execute(
+            """SELECT * FROM bids 
+               WHERE is_uploaded = 1 AND upload_source = ?
+               ORDER BY rating DESC, created_at DESC 
+               LIMIT ?""",
+            (source, limit)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """SELECT * FROM bids 
+               WHERE is_uploaded = 1
+               ORDER BY rating DESC, created_at DESC 
+               LIMIT ?""",
+            (limit,)
+        ).fetchall()
+    
+    conn.close()
     return [_row_to_dict(row) for row in rows]
 
 
